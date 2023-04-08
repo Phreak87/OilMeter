@@ -1,0 +1,42 @@
+const char WifiHTML[] PROGMEM = R"=====(
+<html>
+<head>
+<title>OilMeter</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="log" id="log">
+	<div class="setting">
+		<p>AP-Name:</p>
+		<input class="console" Value="AP-Name" ID="APName"></input>
+		<p class="break">Wifi AP-Name</p>
+	</div>
+	<div class="setting">
+		<p>AP-Password:</p>
+		<input class="console" type="password" Value="AP-Password" ID="APPass"></input>
+		<p class="break">Wifi AP-Password</p>
+	</div>		
+	<div class="setting">
+		<p></p>
+		<a class="Btn" href="#" onclick="fetch('/SETTINGS' + 
+			'?SSID='  + document.getElementById('APName').value +
+			'&PASS='  + document.getElementById('APPass').value
+			)">Speichern</a>
+		<p></p>
+	</div>
+</div>
+
+<Script type="text/javascript">
+	fetch('Wifi.json', {})
+	.then(function(response) {return response.json();})
+	.then(function(json) {
+		document.getElementById('APName').value = json.SSID;
+		document.getElementById('APPass').value = json.PASS;
+	});
+</Script>
+
+</body>
+</html>
+)=====";

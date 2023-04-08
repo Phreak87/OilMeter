@@ -1,0 +1,63 @@
+const char IndexHTML[] PROGMEM = R"=====(
+<html>
+<head>
+<title>OilMeter</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- Menüleiste -->
+<div class="menu">
+	<ul>
+		<li><a href="#" onClick="NavigateFrame('Default.html')" >Übersicht</a></li>
+		<li><a href="#">Einstellungen<i class="arrow down"></i></a>	
+			<ul>
+			<li><a href="#" onClick="NavigateFrame('Wifi.html')" 		>WiFi</a></li>
+			<li><a href="#" onClick="NavigateFrame('Sensor.html')" 		>Sensor</a></li>
+			<li><a href="#" onClick="NavigateFrame('Brenner.html')" 	>Brenner</a></li>
+			<li><a href="#" onClick="NavigateFrame('MQTT.html')"		>MQTT</a></li>
+			</ul>
+		</li>
+		<li>
+		<a href="#">Info<i class="arrow down"></i></a>
+		<ul>
+			<li><a href="#" onClick="NavigateFrame('about.html')">Über</a></li>
+			<li><a href="#" onClick="NavigateFrame('restart')">Restart</a></li>
+			<li><a href="#" onClick="NavigateFrame('reset')">Reset</a></li>
+			<li><a href="#" onClick="NavigateFrame('update')">Update</a></li>
+		</ul>
+		</li>
+	</ul>
+</div>
+
+<iframe src="Default.html" id="CFrame" Height="100%">
+	
+</iframe>
+
+<script type="text/javascript">
+	function NavigateFrame(URL){document.getElementById("CFrame").src=URL;};
+	function Hide (el){el.parentNode.parentNode.style.display = "none";setTimeout(function(){el.parentNode.parentNode.style.display = "";}, 500);};
+</script>
+
+<Script type="text/javascript">
+if (!!window.EventSource) {
+  var source = new EventSource('/events');
+
+  source.addEventListener('open', function(e) { console.log("Events Connected");}, false);
+  source.addEventListener('error', function(e) {if (e.target.readyState != EventSource.OPEN) {
+      console.log("Events Disconnected");
+    }
+  }, false);
+
+  source.addEventListener('RGB', function(e) {
+    document.body.style.backgroundColor = 'rgb(' + e.data + ')';
+    // document.getElementById("log").innerHTML = 'rgb(' + e.data + ')';
+  }, false);
+
+}
+</Script>
+</body>
+</html>
+)=====";

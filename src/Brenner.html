@@ -1,0 +1,125 @@
+const char BrennerHTML[] PROGMEM = R"=====(
+<html>
+<head>
+<title>OilMeter</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<Div class="log" id="log">
+	<div class="setting">
+		<p>L/h Verbrauch</p>
+		<input class="console" id="L_H"></input>
+		<p></p>
+	</div>
+	<div class="setting">
+		<p>Korrekturfaktor</p>
+		<input class="console" id="COR"></input>
+		<p></p>
+	</div>
+	<div class="setting">
+		<p>Tankinhalt(Max)</p>
+		<input class="console" id="MAX"></input>
+		<p></p>
+	</div>
+	<div class="setting">
+		<p>Tankinhalt(Act)</p>
+		<input class="console" id="ACT"></input>
+		<p></p>
+	</div>
+	<div class="setting">
+		<P>Toleranz: (0-50)</P>
+		<input type="range" id="TOL" min="0" max="100" value="20" class="slider" oninput="rangeValue.innerText = this.value"></input>
+		<p>0</p>
+	</div>
+	<div class="setting">
+		<p>Vorheizen</p>
+		<input class="console" id="PREH_RGB"></input>
+		<a class="Btn" href="#" onclick="document.getElementById('PREH_RGB').value = Color">Aktuelle Farbe</a>
+	</div>
+	<div class="setting">
+		<p>Gebläsestart</p>
+		<input class="console" id="BLOW_RGB"></input>
+		<a class="Btn" href="#" onclick="document.getElementById('BLOW_RGB').value = Color">Aktuelle Farbe</a>
+	</div>
+	<div class="setting">
+		<p>Brennen</p>
+		<input class="console" id="BURN_RGB"></input>
+		<a class="Btn" href="#" onclick="document.getElementById('BURN_RGB').value = Color">Aktuelle Farbe</a>
+	</div>
+	<div class="setting">
+		<p>Fehler</p>
+		<input class="console" id="ERRO_RGB"></input>
+		<a class="Btn" href="#" onclick="document.getElementById('ERRO_RGB').value = Color">Aktuelle Farbe</a>
+	</div>
+	<div class="setting">
+		<p></p>
+		<a class="Btn" href="#" onclick="fetch('/SETTINGS' + 
+			'?PREH_R='  + document.getElementById('PREH_RGB').value.split(',')[0] + 
+			'&PREH_G='  + document.getElementById('PREH_RGB').value.split(',')[1] + 
+			'&PREH_B='  + document.getElementById('PREH_RGB').value.split(',')[2] + 
+			'&BLOW_R='  + document.getElementById('BLOW_RGB').value.split(',')[0] + 
+			'&BLOW_G='  + document.getElementById('BLOW_RGB').value.split(',')[1] + 
+			'&BLOW_B='  + document.getElementById('BLOW_RGB').value.split(',')[2] + 
+			'&BURN_R='  + document.getElementById('BURN_RGB').value.split(',')[0] + 
+			'&BURN_G='  + document.getElementById('BURN_RGB').value.split(',')[1] + 
+			'&BURN_B='  + document.getElementById('BURN_RGB').value.split(',')[2] + 
+			'&ERRO_R='  + document.getElementById('ERRO_RGB').value.split(',')[0] + 
+			'&ERRO_G='  + document.getElementById('ERRO_RGB').value.split(',')[1] + 
+			'&ERRO_B='  + document.getElementById('ERRO_RGB').value.split(',')[2] + 
+			'&TOL='  	+ document.getElementById('TOL').value +
+			'&MAX='  	+ document.getElementById('MAX').value +
+			'&ACT='  	+ document.getElementById('ACT').value +
+			'&COR='  	+ document.getElementById('COR').value +
+			'&L_H='  	+ document.getElementById('L_H').value
+			)">Speichern</a>
+		<p></p>
+	</div>
+</div>
+
+<Script type="text/javascript">
+	if (!!window.EventSource) {
+	  var source = new EventSource('/events');
+	  var Color = '0,0,0';
+	
+	  source.addEventListener('open', function(e) { console.log("Events Connected");}, false);
+	  source.addEventListener('error', function(e) {if (e.target.readyState != EventSource.OPEN) {
+		  console.log("Events Disconnected");
+		}
+	  }, false);
+	
+	  source.addEventListener('RGB', function(e) {
+		document.getElementById('PREH_RGB').nextElementSibling.style.background = 'rgb(' + e.data + ')';
+		document.getElementById('BLOW_RGB').nextElementSibling.style.background = 'rgb(' + e.data + ')';
+		document.getElementById('BURN_RGB').nextElementSibling.style.background = 'rgb(' + e.data + ')';
+		document.getElementById('ERRO_RGB').nextElementSibling.style.background = 'rgb(' + e.data + ')';
+		Color = parseInt(e.data.split(',')[0]) + "," + 
+				parseInt(e.data.split(',')[1]) + "," + 
+				parseInt(e.data.split(',')[2]);
+	  }, false);
+	}
+
+	fetch('Burn.json', {})
+	.then(function(response) {return response.json();})
+	.then(function(json) {
+		document.getElementById('PREH_RGB').value = json.PREHEAT.R + "," + json.PREHEAT.G + "," + json.PREHEAT.B;
+		document.getElementById('BLOW_RGB').value = json.BLOW.R    + "," + json.BLOW.G    + "," + json.BLOW.B;
+		document.getElementById('BURN_RGB').value = json.BURN.R    + "," + json.BURN.G    + "," + json.BURN.B; 
+		document.getElementById('ERRO_RGB').value = json.ERROR.R   + "," + json.ERROR.G   + "," + json.ERROR.B;
+		document.getElementById('PREH_RGB').style.background = 'rgb(' + json.PREHEAT.R + "," + json.PREHEAT.G + "," + json.PREHEAT.B + ')';
+		document.getElementById('BLOW_RGB').style.background = 'rgb(' + json.BLOW.R    + "," + json.BLOW.G    + "," + json.BLOW.B + ')';
+		document.getElementById('BURN_RGB').style.background = 'rgb(' + json.BURN.R    + "," + json.BURN.G    + "," + json.BURN.B + ')';
+		document.getElementById('ERRO_RGB').style.background = 'rgb(' + json.ERROR.R   + "," + json.ERROR.G   + "," + json.ERROR.B + ')';
+		document.getElementById('TOL').value = json.TOL;
+		document.getElementById('MAX').value = json.MAX;
+		document.getElementById('ACT').value = json.ACT;
+		document.getElementById('COR').value = json.COR;
+		document.getElementById('L_H').value = json.L_H;
+	});
+
+</Script>
+
+</body>
+</html>
+)=====";
