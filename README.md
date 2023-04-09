@@ -22,10 +22,13 @@ And ... TBH i don't know if this aproach is working within <= 5% difference to r
 # Connection diagram (Will follow)
 
 ESP8266 | TCS34725
-V+      | V+
-SDL     | SDL
-SDA     | SDA
+---------------------
+VIN     | V+
+GND     | GND
+D1      | SCL
+D2      | SDA
 LED     | D6
+NC      | INT
 
 #Todo
 
