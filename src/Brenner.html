@@ -29,8 +29,10 @@ const char BrennerHTML[] PROGMEM = R"=====(
 		<p></p>
 	</div>
 	<div class="setting">
-		<P>Toleranz: (0-50)</P>
-		<input type="range" id="TOL" min="0" max="100" value="20" class="slider" oninput="rangeValue.innerText = this.value"></input>
+		<P>Toleranz:</P>
+		<input type="range" id="TOL" min="0" max="100" class="slider">
+			<div id="selectValue">0</div>
+		</input>
 		<p>0</p>
 	</div>
 	<div class="setting">
@@ -73,7 +75,7 @@ const char BrennerHTML[] PROGMEM = R"=====(
 			'&ACT='  	+ document.getElementById('ACT').value +
 			'&COR='  	+ document.getElementById('COR').value +
 			'&L_H='  	+ document.getElementById('L_H').value
-			)">Speichern</a>
+			); alert ('Settings saved');">Speichern</a>
 		<p></p>
 	</div>
 </div>
@@ -111,12 +113,34 @@ const char BrennerHTML[] PROGMEM = R"=====(
 		document.getElementById('BLOW_RGB').style.background = 'rgb(' + json.BLOW.R    + "," + json.BLOW.G    + "," + json.BLOW.B + ')';
 		document.getElementById('BURN_RGB').style.background = 'rgb(' + json.BURN.R    + "," + json.BURN.G    + "," + json.BURN.B + ')';
 		document.getElementById('ERRO_RGB').style.background = 'rgb(' + json.ERROR.R   + "," + json.ERROR.G   + "," + json.ERROR.B + ')';
+		document.getElementById('selectValue').innerHTML = json.TOL;
 		document.getElementById('TOL').value = json.TOL;
 		document.getElementById('MAX').value = json.MAX;
 		document.getElementById('ACT').value = json.ACT;
 		document.getElementById('COR').value = json.COR;
 		document.getElementById('L_H').value = json.L_H;
 	});
+
+let slider = document.getElementById('TOL')
+let selectValue = document.getElementById('selectValue')
+
+selectValue.innerHTML = slider.value
+slider.oninput = function() {
+  selectValue.innerHTML = this.value
+  if (slider.value > 90){selectValue.style.left = slider.getBoundingClientRect().left;} 
+else                  {selectValue.style.left = slider.getBoundingClientRect().right - 34;}
+}
+
+slider.onmouseenter = function() {
+  selectValue.innerHTML = this.value
+  selectValue.style.top = slider.getBoundingClientRect().top + 1;
+  selectValue.style.visibility = "visible";
+}
+
+selectValue.style.top = slider.getBoundingClientRect().top + 1;
+selectValue.style.visibility = "visible";
+if (slider.value > 90){selectValue.style.left = slider.getBoundingClientRect().left;} 
+else                  {selectValue.style.left = slider.getBoundingClientRect().right - 34;}
 
 </Script>
 

@@ -9,6 +9,12 @@ const char WifiHTML[] PROGMEM = R"=====(
 <body>
 <div class="log" id="log">
 	<div class="setting">
+		<p>WIFI Stations</p>
+		<select class="console" id="AP_LIST">
+		</select>
+		<p class="break">Select a Station from the list</p>
+	</div>
+	<div class="setting">
 		<p>AP-Name:</p>
 		<input class="console" Value="AP-Name" ID="APName"></input>
 		<p class="break">Wifi AP-Name</p>
@@ -34,6 +40,16 @@ const char WifiHTML[] PROGMEM = R"=====(
 	.then(function(json) {
 		document.getElementById('APName').value = json.SSID;
 		document.getElementById('APPass').value = json.PASS;
+	});
+	fetch('NETWORKS', {})
+	.then(function(response) {return response.json();})
+	.then(function(json) {
+		var len = Object.keys(json).length;
+		for (var i = 0; i < len; i++) {
+			var opt = document.createElement('option');
+			opt.value = json[i]["SSID"]; opt.innerHTML = json[i]["SSID"];
+			document.getElementById('AP_LIST').appendChild(opt);
+		}
 	});
 </Script>
 

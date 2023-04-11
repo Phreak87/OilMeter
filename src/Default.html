@@ -18,20 +18,21 @@ const char DefaultHTML[] PROGMEM = R"=====(
 		<p ID="ColorStatus">RGB(0,0,0)</p>
 		<p>RGB-Farbcode</p>
 	</div>
+	<HR>
 	<div class="setting">
 		<p>letzte Brenndauer:</p>
-		<p>50</p>
-		<p>Liter</p>
+		<p id="LastBTime">0</p>
+		<p>Sekunden</p>
 	</div>
 	<div class="setting">
 		<p>letzter Verbrauch:</p>
-		<p>50</p>
+		<p id="LastConsL">0</p>
 		<p>Liter</p>
 	</div>
 	<div class="setting">
 		<p>Zeit zwischen Brennvorgängen:</p>
-		<p>500</p>
-		<p>Liter</p>
+		<p id="LastWTime">0</p>
+		<p>Sekunden</p>
 	</div>
 </div>
 
@@ -46,16 +47,20 @@ const char DefaultHTML[] PROGMEM = R"=====(
 	  }, false);
 	
 	  source.addEventListener('Status', function(e) {
-		if (e.type == "Status"){
-			document.getElementById('Status').innerText = ["Aus","Vorheizen","Gebläse","Brennen","Fehler"][parseInt(e.data)];
-		};
+		document.getElementById('Status').innerText = ["Aus","Vorheizen","Gebläse","Brennen","Fehler"][parseInt(e.data)];
 	  }, false);
-
+	  source.addEventListener('LastBTime', function(e) {
+		document.getElementById('LastBTime').innerText = e.data;
+	  }, false);
+	  source.addEventListener('LastConsL', function(e) {
+		document.getElementById('LastConsL').innerText = e.data;
+	  }, false);
+	  source.addEventListener('LastWTime', function(e) {
+		document.getElementById('LastWTime').innerText = e.data;
+	  }, false);
 	  source.addEventListener('RGB', function(e) {
-		if (e.type == "RGB"){
 			document.getElementById('ColorStatus').innerText = "RGB(" + e.data + ")";
 			document.getElementById('ColorStatus').style.backgroundColor = 'rgb(' + e.data + ')';
-		};
 	  }, false);
 
 	}

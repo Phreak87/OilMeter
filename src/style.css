@@ -194,6 +194,19 @@ font-size: 110% !important
 opacity: 1
 }
 
+#selectValue {
+  width: 33px;
+  height: 33px;
+  border-radius: 8px;
+  position: absolute;
+  display: inline-block;
+  background: #444;
+  text-align: center;
+  line-height: 35px;
+  font-size: 16px;
+  font-weight: bold;
+}
+
 select, input, .btn{
 	height: 24px;
 	border-radius: 5px;

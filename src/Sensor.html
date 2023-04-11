@@ -9,6 +9,14 @@ const char SensorHTML[] PROGMEM = R"=====(
 <body>
 <Div class="log" id="log">
 	<div class="setting">
+		<p>Device Type</p>
+		<select class="console" id="SENS_TYPE">
+			<option>TCS34725</option>
+			<option>APDS9960</option>
+		</select>
+		<p class="break">Type of the color sensing device</p>
+	</div>
+	<div class="setting">
 		<p>Integration Time</p>
 		<select class="console" id="SENS_INTEG">
 			<option>2.4</option>
@@ -36,14 +44,15 @@ const char SensorHTML[] PROGMEM = R"=====(
 		<option>False</option>
 		<option>True</option>
 		</select>
-		<p class="break">Onboard Light enabled</p>
+		<p class="break">Onboard Light enabled (only TCS34725)</p>
 	</div>
 	<div class="setting">
 		<p></p>
 		<a class="Btn" href="#" onclick="fetch('/SETTINGS' + 
 			'?INTEG='  + document.getElementById('SENS_INTEG').value + 
 			'&GAIN='   + document.getElementById('SENS_GAIN').value +
-			'&LIGHT='  + document.getElementById('SENS_LIGHT').value
+			'&LIGHT='  + document.getElementById('SENS_LIGHT').value +
+			'&TYPE='  + document.getElementById('SENS_TYPE').value
 			)">Speichern</a>
 		<p></p>
 	</div>
@@ -55,6 +64,7 @@ const char SensorHTML[] PROGMEM = R"=====(
 		document.getElementById('SENS_INTEG').value = json.INTEG;
 		document.getElementById('SENS_GAIN').value = json.GAIN;
 		document.getElementById('SENS_LIGHT').value = json.LIGHT;
+		document.getElementById('SENS_TYPE').value = json.TYPE;
 	});
 </Script>
 </body>
