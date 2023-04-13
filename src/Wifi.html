@@ -32,9 +32,16 @@ const char WifiHTML[] PROGMEM = R"=====(
 			)">Speichern</a>
 		<p></p>
 	</div>
+
+	<div class="setting">
+		<p></p>
+		<a class="Btn" href="#" onclick="FileSendContent(JsonObject, 'Wifi.json')">Speichern 2</a>
+		<p></p>
+	</div>
 </div>
 
 <Script type="text/javascript">
+	var JsonObject = null;
 	fetch('Wifi.json', {})
 	.then(function(response) {return response.json();})
 	.then(function(json) {
@@ -44,6 +51,7 @@ const char WifiHTML[] PROGMEM = R"=====(
 	fetch('NETWORKS', {})
 	.then(function(response) {return response.json();})
 	.then(function(json) {
+		JsonObject = json ;
 		var len = Object.keys(json).length;
 		for (var i = 0; i < len; i++) {
 			var opt = document.createElement('option');
@@ -52,7 +60,27 @@ const char WifiHTML[] PROGMEM = R"=====(
 		}
 	});
 </Script>
+<Script>
+	function FileSendContent(_content, _filename){
+		var xhttp = new XMLHttpRequest(); 
+		var okay = false;
 
+		xhttp.onreadystatechange = function() {
+			if (xhttp.readyState == 4) {
+				if (xhttp.status == 200) {
+					okay = true;
+				} else {}
+			}
+		};
+
+		try {
+			xhttp.open("POST", _filename, false);
+			xhttp.send(_content);
+		} catch (error){
+			return okay;       
+		};
+	}
+</Script>
 </body>
 </html>
 )=====";

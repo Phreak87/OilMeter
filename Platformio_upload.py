@@ -9,7 +9,7 @@
 # upload_url = <your upload URL>
 # 
 # An example of an upload URL:
-# upload_URL = http://192.168.1.123/update
+# upload_URL = http://192.168.7.132/update
 
 import requests
 import hashlib

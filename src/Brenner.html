@@ -124,23 +124,17 @@ const char BrennerHTML[] PROGMEM = R"=====(
 let slider = document.getElementById('TOL')
 let selectValue = document.getElementById('selectValue')
 
-selectValue.innerHTML = slider.value
-slider.oninput = function() {
-  selectValue.innerHTML = this.value
-  if (slider.value > 90){selectValue.style.left = slider.getBoundingClientRect().left;} 
-else                  {selectValue.style.left = slider.getBoundingClientRect().right - 34;}
+function AdjustSlider (){
+	selectValue.innerHTML = slider.value
+	selectValue.style.visibility = "visible";
+	selectValue.style.top = slider.getBoundingClientRect().top + 1;
+	if (slider.value > 80){selectValue.style.left = slider.getBoundingClientRect().left;}
+	else                  {selectValue.style.left = slider.getBoundingClientRect().right - 34;}
 }
 
-slider.onmouseenter = function() {
-  selectValue.innerHTML = this.value
-  selectValue.style.top = slider.getBoundingClientRect().top + 1;
-  selectValue.style.visibility = "visible";
-}
-
-selectValue.style.top = slider.getBoundingClientRect().top + 1;
-selectValue.style.visibility = "visible";
-if (slider.value > 90){selectValue.style.left = slider.getBoundingClientRect().left;} 
-else                  {selectValue.style.left = slider.getBoundingClientRect().right - 34;}
+slider.oninput	= function() {AdjustSlider();}
+window.onresize	= function() {AdjustSlider();}
+AdjustSlider();
 
 </Script>
 
