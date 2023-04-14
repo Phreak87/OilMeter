@@ -25,7 +25,7 @@ a extra-wire to any ground in your house.
 ![Installation](Pictures/Adapter_Plate.png)
 ![Installation](Pictures/Webinterface.png)
 
-# Connection diagram (Will follow)
+# Connection diagram
 
 | ESP   | GYP | TCS |
 | ----- | --- | --- |
