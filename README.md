@@ -18,17 +18,19 @@ And ... TBH i don't know if this aproach is working within <= 5% difference to r
 
 ## Pictures
 
+![Installation](Pictures/Installation.jpg)
+![Installation](Pictures/Adapter_Plate.png)
+![Installation](Pictures/Webinterface.png)
 
 # Connection diagram (Will follow)
 
-ESP8266 | TCS34725
----------------------
-VIN     | V+
-GND     | GND
-D1      | SCL
-D2      | SDA
-LED     | D6
-NC      | INT
+| ESP   | GYP | TCS |
+| ----- | --- | --- |
+| 3V3   | VCC | VIN |
+| GND   | GND | GND |
+| D6    | INT | LED |
+| D2    | SDA | SDA |
+| D1    | SCL | SCL |
 
 #Todo
 
