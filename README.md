@@ -1,20 +1,23 @@
 # OilMeter
 
-Measure the oil consumption via the burner status LED on a ESP8266 with a TCS34725 color sensor.
+Measure the oil consumption via the burner status LED on a ESP8266 with a TCS34725 or APDS9960 color sensor.
 BOM ist just ~10 Euro for all parts. This project is under active development and NOT FULLY FINISHED yet!
-since my TCS-Sensor is not working atm. i cannot develop further details on this project until the new one
-is received. feel free to make changes and do further development.
-Please note that this version is just the start of dev, is not finished and code is not well structured.
-And ... TBH i don't know if this aproach is working within <= 5% difference to real values.
 
-## This is just a alpha version of a Oilmeter with the following features included:
+## Oilmeter comes with the following features included:
 - First start as AccessPoint (OilMeter, PWD: OilMeter), after saving Wifi-Settings it will connect to default Wifi.
 - Nice handmade and Mobile-friendly Webinterface for configuration and status with live streaming updates via web-events.
 - Reads the sensor status (Preheat, Blower start, burn, error and off) based on predefined color-ranges and calculates oil-consumption
-  by the definition of L/h of your heater (pump-ressure & oil inlet diameter).
+  by the definition of L/h of your heater.
 - MQTT-Connection with Homeassistant: Publishes status to a MQTT-Broker and automatically creates entities in Homeassistant.
 - Update on the fly with direct Firmware Uploads (powered by ElegantOTA).
 - existing Sensor adapter plates can be 3D-Printed.
+
+## Notes
+
+If you have problems with ESP-restarts then please consider that the burner needs a high voltage to start burning.
+this high voltage can be transmitted via the wires and causes the esp to restart. to avoid this you can take a foil
+(or some tabac-box) to isolate the esp and network cables for the sensor. Make sure you put the isolation material with
+a extra-wire to any ground in your house.
 
 ## Pictures
 
@@ -34,11 +37,24 @@ And ... TBH i don't know if this aproach is working within <= 5% difference to r
 
 #Todo
 
+- Multicolor LED for sensor status and system messages
+- feedback if setting was saved.
+- Not try to send if MQTT Offline
+- auto adaptation of the correct factor value on fill-up (needs to be between 2 times full)
+- Informations about last update in the webinterface to make sure ESP is alive.
+- Burning interval with decimal places (just 100 minutes is too less - like 100.01)
+- Burn settings – calculation factor from L to kW Heating power for Homeassistant Energy Dashboard.
+- Don't save actual tank volume in burn settings (exlude all changing files in usage.json)
+  - actual tank volume in liter and percent - maybe with animated svg-picture.
+  - Full burning runtime
+  - Full consumption in liter and kWh
+  - last burn runtime
+  - last interval time
+  - daily times/consumption.
+  - last consumption in liter and kWh
+- Show system runtime and reboot cause in webinterface.
 - compress webpages and js with compressors and gzip before uploading.
 - webpages based on local bootstrap.
 - MQTT-Homeassistant optimizations and more values.
-- More details in overview page.
-  - last and daily times/consumption.
-  - interval for burning starts and burning time.
-  - auto adaptation of the correct factor value on fill-up (needs to be between 2 times full)
-  - Many, Many Bug-fixes
+  
+
