@@ -16,8 +16,12 @@ BOM ist just ~10 Euro for all parts. This project is under active development an
 
 If you have problems with ESP-restarts then please consider that the burner needs a high voltage to start burning.
 this high voltage can be transmitted via the wires and causes the esp to restart. to avoid this you can take a foil
-(or some tabac-box) to isolate the esp and network cables for the sensor. Make sure you put the isolation material with
+(or some tabac-box) to isolate the esp and network cables to isolate the sensor wires. Make sure you put the isolation material with
 a extra-wire to any ground in your house.
+
+To make good measures you need to know the actual tank volume. you can do this by estimate based on the height of the oil in the tank
+or you start from scratch if the tank is filled up to its maximum. after the first refill you can adapt your values based on whats 
+really used vs. whats refilled.
 
 ## Pictures
 
