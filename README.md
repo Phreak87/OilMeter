@@ -42,21 +42,10 @@ really used vs. whats refilled.
 #Todo
 
 - Multicolor LED for sensor status and system messages
-- feedback if setting was saved.
-- do not send messages if MQTT is not connected.
+- better feedback if setting was saved.
 - auto adaptation of the correct factor value on fill-up (needs to be between 2 times full)
-- Informations about last update in the webinterface to make sure ESP is alive.
-- Burning interval with decimal places (just 100 minutes is too less - like 100.01)
-- Burn settings – calculation factor from L to kW Heating power for Homeassistant Energy Dashboard.
-- Don't save actual tank volume in burn settings (exlude all changing files in usage.json)
-  - actual tank volume in liter and percent - maybe with animated svg-picture.
-  - Full burning runtime
-  - Full consumption in liter and kWh
-  - last burn runtime
-  - last interval time
-  - daily times/consumption.
-  - last consumption in liter and kWh
-- Show system runtime and reboot cause in webinterface.
+- animated svg-picture of the tank volume in percent
+- Show system up time in webinterface.
 - compress webpages and js with compressors and gzip before uploading.
 - webpages based on local bootstrap.
 - MQTT-Homeassistant optimizations and more values.
