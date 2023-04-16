@@ -14,6 +14,11 @@ const char BrennerHTML[] PROGMEM = R"=====(
 		<p></p>
 	</div>
 	<div class="setting">
+		<p>L zu kW Faktor</p>
+		<input class="console" id="LKW"></input>
+		<p></p>
+	</div>
+	<div class="setting">
 		<p>Korrekturfaktor</p>
 		<input class="console" id="COR"></input>
 		<p></p>
@@ -31,7 +36,7 @@ const char BrennerHTML[] PROGMEM = R"=====(
 	<div class="setting">
 		<P>Toleranz:</P>
 		<input type="range" id="TOL" min="0" max="100" class="slider">
-			<div id="selectValue">0</div>
+			<div id="selectValue"></div>
 		</input>
 		<p>0</p>
 	</div>
@@ -74,7 +79,8 @@ const char BrennerHTML[] PROGMEM = R"=====(
 			'&MAX='  	+ document.getElementById('MAX').value +
 			'&ACT='  	+ document.getElementById('ACT').value +
 			'&COR='  	+ document.getElementById('COR').value +
-			'&L_H='  	+ document.getElementById('L_H').value
+			'&L_H='  	+ document.getElementById('L_H').value +
+			'&LKW='  	+ document.getElementById('LKW').value
 			); alert ('Settings saved');">Speichern</a>
 		<p></p>
 	</div>
@@ -91,7 +97,7 @@ const char BrennerHTML[] PROGMEM = R"=====(
 		}
 	  }, false);
 	
-	  source.addEventListener('RGB', function(e) {
+	  source.addEventListener('LastSensRGB', function(e) {
 		document.getElementById('PREH_RGB').nextElementSibling.style.background = 'rgb(' + e.data + ')';
 		document.getElementById('BLOW_RGB').nextElementSibling.style.background = 'rgb(' + e.data + ')';
 		document.getElementById('BURN_RGB').nextElementSibling.style.background = 'rgb(' + e.data + ')';
@@ -119,6 +125,7 @@ const char BrennerHTML[] PROGMEM = R"=====(
 		document.getElementById('ACT').value = json.ACT;
 		document.getElementById('COR').value = json.COR;
 		document.getElementById('L_H').value = json.L_H;
+		document.getElementById('LKW').value = json.LKW;
 	});
 
 let slider = document.getElementById('TOL')

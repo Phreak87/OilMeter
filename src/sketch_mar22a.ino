@@ -18,47 +18,62 @@
 #include "Sensor.html"  // Sensoreinstellungen
 #include "Brenner.html" // Brennereinstellungen
 #include "Style.css"    // Style für alle Seiten
-#include "Menu.css"    // Style für alle Seiten
+#include "Menu.css"     // Style für Menü
 
-// Use this values to overwrite the Wifi-Settings with 
-// this hardcoded values. (fault case)
+// --------------------------------------------------------------------------------------
+// WLAN Einstellungen beim Reboot überschreiben (nützlich für Wifi-Tests).
+// WifiRestore auf true setzen um Einstellungen anzuwenden.
+// --------------------------------------------------------------------------------------
 const bool WifiRestore = false;
 const char* WIFISSID = "WLAN";
 const char* WIFIPASS = "PASSWORD";
-int numberOfNetworks = 0;
 
-String LastRGB = "255,255,255"; // 255,... ist weiß und Fehler beim Sensor.
-int LastStat = 0;
-double ConsumL = 0;
+// --------------------------------------------------------------------------------------
+// Timer für Brenner Lauf- und Wartezeit
+// --------------------------------------------------------------------------------------
+ulong TimerBurnMs = 0;              // Messung länge Brennvorgang in ms
+ulong TimerWaitMs = millis();       // Messung Zeitabstand zwischen Brennvorgängen in Ms
 
-ulong AllXSec = millis();   // Messung Zeitabstand Brennvorgang
-ulong LastAllXSec = 0;      // Letzter Messwert
+// --------------------------------------------------------------------------------------
+// Definitionen für letzte Zustände und Berechnungen
+// --------------------------------------------------------------------------------------
+String LastSensRGB = "255,255,255";   // 255,... ist weiß und Fehler beim Sensor.
+int    LastBurnStat  = 0;             // Letzter Brennerstatus
+ulong  LastWaitS  = 0;                // Letzter Wartezeit zwischen Starts
+double LastBurnS  = 0.0;              // Letzte Anzahl an Sekunden Brennvorgang
+double LastBurnL  = 0.0;              // Letzte Anzahl an Liter Brennvorgang
+double LastGenkW  = 0.0;              // Letzte Generierte kWh
 
-ulong BurnMs = 0;           // Messung länge Brennvorgang in ms
-double LastBurnS = 0;       // Letzte Anzahl an Sekunden Brennvorgang
-double LastBurnH = 0;       // Letzte Anzahl an Stunden Brennvorgang
-double LastBurnL = 0;       // Letzte Anzahl an Liter Brennvorgang
+// --------------------------------------------------------------------------------------
+// Definitionen für gesamte über die Gesamtlaufzeit summierten Daten
+// --------------------------------------------------------------------------------------
+ulong  GesWaitS  = 0.0;              // Gesamte Wartezeit des Brenners (incl. Vorheizen)
+double GesBurnS  = 0.0;              // Gesamte Anzahl an Sekunden Brennvorgang
+double GesBurnL  = 0.0;              // Gesamte Anzahl an Liter Brennvorgang
+double GesGenkW  = 0.0;              // Gesamte Generierte kWh
+double ActTankL  = 0.0;              // Aktuelle Anzahl an Liter im Tank
 
-ulong Timer2s = millis();   // Backup-Strategie für Werte senden (ForcedSend).
-ulong Timer60s = millis();  // Backup-Strategie für Werte senden (ForcedSend).
+// --------------------------------------------------------------------------------------
+// Hilfsvariablen
+// --------------------------------------------------------------------------------------
+ulong Timer25s = millis();         // Strategie für Werte senden (ForcedSend).
+ulong Timer60s = millis();         // Strategie für Werte senden (ForcedSend).
+bool APMode = true;                // Wenn AP-Mode dann MQTT ignorieren
+bool TCS = true;                   // Wenn TCS34725 verwendet wurde, ansonsten APDS9960
+bool SensReady = false;            // Wenn Sensor init OK
+bool MqttReady = false;            // Wenn MQTT init OK
+int numberOfNetworks = 0;          // Anzahl gefundener Wlan-Netzwerke
+const byte pinLED = D6;            // LED-Pin bei TCS-Sensor/Int bei APDS
 
-bool APMode = true;         // Wenn AP-Mode dann MQTT ignorieren
-bool TCS = true;            // Wenn TCS34725 verwendet wurde, ansonsten APDS9960
-
-bool SensReady = false; // Wenn Sensor init OK
-bool MqttReady = false; // Wenn MQTT init OK
-
-const byte pinLED = D6;
-const char* WIFIFILENAME = "Wifi.json";
-const char* MQTTFILENAME = "Mqtt.json";
-const char* SENSFILENAME = "Sens.json";
-const char* BURNFILENAME = "Burn.json";
-const char* USAGEFILENAME = "Usage.json";
-DynamicJsonDocument WIFISETT(128); // Muss größer sein als tatsächlicher Verbrauch (Sonst werden werte mit null geschrieben)
-DynamicJsonDocument SENSSETT(128); // Muss größer sein als tatsächlicher Verbrauch (Sonst werden werte mit null geschrieben)
-DynamicJsonDocument MQTTSETT(256); // Muss größer sein als tatsächlicher Verbrauch (Sonst werden werte mit null geschrieben)
-DynamicJsonDocument BURNSETT(1024);// Muss größer sein als tatsächlicher Verbrauch (Sonst werden werte mit null geschrieben)
-DynamicJsonDocument USAGE(512);    // Muss größer sein als tatsächlicher Verbrauch (Sonst werden werte mit null geschrieben)
+// --------------------------------------------------------------------------------------
+// Dateinamen und JSON-Dokumente für die Verwaltung
+// Json-Dokument muss größer sein als tatsächlicher Verbrauch! (Sonst Update-Probleme)
+// --------------------------------------------------------------------------------------
+const char* WIFIFILENAME  = "Wifi.json";  DynamicJsonDocument WIFISETT(128); 
+const char* MQTTFILENAME  = "Mqtt.json";  DynamicJsonDocument MQTTSETT(256);
+const char* SENSFILENAME  = "Sens.json";  DynamicJsonDocument SENSSETT(128);
+const char* BURNFILENAME  = "Burn.json";  DynamicJsonDocument BURNSETT(1024);
+const char* USAGEFILENAME = "Usage.json"; DynamicJsonDocument USAGE(512);
 
 Adafruit_TCS34725 tcs = Adafruit_TCS34725();
 SparkFun_APDS9960 apds = SparkFun_APDS9960 ();
@@ -66,41 +81,42 @@ espMqttClientAsync mqttClient;
 AsyncEventSource events("/events"); 
 AsyncWebServer server(80);
 
-const char origArray[][7][60]= 
-{
-  // HASS-NODE                                             NAME              STATE-TOPIC                  UNIQUE-ID                 MEAS-Unit       DEV-CLA  STATE-CLASS
-    {"homeassistant/sensor/oilmeter/color_r/config",       "Color_R",        "oilmeter/sensor/0/R",       "OilMeter_Sensor0_R",     "brightness",   "water", "measurement"},
-    {"homeassistant/sensor/oilmeter/color_g/config",       "Color_G",        "oilmeter/sensor/0/G",       "OilMeter_Sensor0_G",     "brightness",   "water", "measurement"}, 
-    {"homeassistant/sensor/oilmeter/color_b/config",       "Color_B",        "oilmeter/sensor/0/B",       "OilMeter_Sensor0_B",     "brightness",   "water", "measurement"}, 
-    {"homeassistant/sensor/oilmeter/color_l/config",       "LUX",            "oilmeter/sensor/0/L",       "OilMeter_Sensor0_L",     "brightness",   "water", "measurement"}, 
-    {"homeassistant/sensor/oilmeter/LastWTime/config",     "LastWTime",      "oilmeter/Burning_Interval", "OilMeter_LastWTime",     "s",            "water", "measurement"}, 
-    {"homeassistant/sensor/oilmeter/LastBTime/config",     "LastBTime",      "oilmeter/Burning_Time",     "OilMeter_LastBTime",     "min",          "water", "measurement"}, 
-    {"homeassistant/sensor/oilmeter/consumption_l/config", "consumption_l",  "oilmeter/Consumption_l",    "OilMeter_Consumption_L", "L",            "water", "total_increasing"}
-};
-
 void setup(void) {
   Serial.begin(115200);                   // Serielle Konsole aktivieren (115200)
   Serial.println("");Serial.println("");  // Leerzeilen um vom Bootcode abzusetzen
   pinMode (pinLED, OUTPUT);               // LED-Pin des Sensors.
 
   // Disable the Watchdog (Debugging)
+  // ESP.wdtDisable();
+  // *((volatile uint32_t*) 0x60000900) &= ~(1); // Hardware WDT OFF
   // 0 -> normal startup by power on
   // 1 -> hardware watch dog reset
   // 2 -> software watch dog reset (From an exception)
   // 3 -> software watch dog reset system_restart (Possibly unfed watchdog got angry)
   // 4 -> soft restart (Possibly with a restart command)
   // 5 -> wake up from deep-sleep
-  // ESP.wdtDisable();
-  // *((volatile uint32_t*) 0x60000900) &= ~(1); // Hardware WDT OFF
 
   InitLittleFS ();                        // Im LittleFS stehen die WLAN- und andere daten.
   numberOfNetworks = WiFi.scanNetworks(); // Bevor zu einem WLAN verbunden wird, sonst Absturz!
 
+// Wenn vorhanden dann laden ansonsten von Defaults nehmen und abspeichern.
   bool LoadedWifi = LoadFile (WIFIFILENAME, WIFISETT); if(WifiRestore == true) {DefaultJsonWifi();  SaveFile(WIFIFILENAME, WIFISETT);};
   bool LoadedMqtt = LoadFile (MQTTFILENAME, MQTTSETT); if(LoadedMqtt == false) {DefaultJsonMqtt();  SaveFile(MQTTFILENAME, MQTTSETT);};
   bool LoadedSens = LoadFile (SENSFILENAME, SENSSETT); if(LoadedSens == false) {DefaultJsonSens();  SaveFile(SENSFILENAME, SENSSETT);};
   bool LoadedBurn = LoadFile (BURNFILENAME, BURNSETT); if(LoadedBurn == false) {DefaultJsonBurn();  SaveFile(BURNFILENAME, BURNSETT);};
   bool LoadedUsage = LoadFile (USAGEFILENAME, USAGE);  if(LoadedUsage == false){DefaultJsonUsage(); SaveFile(USAGEFILENAME, USAGE);};
+
+// Write back Last Values from Json to internal Variables
+  LastBurnL = USAGE["LastBurnL"].as<double>();
+  LastWaitS = USAGE["LastWaitS"].as<double>();
+  LastBurnS = USAGE["LastBurnS"].as<double>();
+  LastGenkW = USAGE["LastGenkW"].as<double>();
+  GesBurnL  = USAGE["GesBurnL"].as<double>();
+  GesWaitS  = USAGE["GesWaitS"].as<double>();
+  GesBurnS  = USAGE["GesBurnS"].as<double>();
+  GesGenkW  = USAGE["GesGenkW"].as<double>();
+  ActTankL  =  USAGE["ActTankL"].as<double>();
+  Serial.println ("recovered usage values.");
 
   if (LoadedWifi){    // Wenn Wifi.json vorhanden
     Serial.println    ("Connect to saved AP)");
@@ -163,6 +179,7 @@ void setup(void) {
     bool MqttUpdated = false;
     bool BurnUpdated = false;
     bool SensUpdated = false;
+    bool UsageUpdated = false;
 
     for(int i=0;i<paramsNr;i++){
         AsyncWebParameter* p = request->getParam(i);
@@ -186,8 +203,10 @@ void setup(void) {
         if (p -> name() == "TOL")     {BURNSETT["TOL"]  = p-> value(); BurnUpdated = true;}
         if (p -> name() == "MAX")     {BURNSETT["MAX"]  = p-> value(); BurnUpdated = true;}
         if (p -> name() == "ACT")     {BURNSETT["ACT"]  = p-> value(); BurnUpdated = true;}
+        if (p -> name() == "ACT")     {USAGE["ActTankL"]  = p-> value(); UsageUpdated = true;}
         if (p -> name() == "COR")     {BURNSETT["COR"]  = p-> value(); BurnUpdated = true;}
         if (p -> name() == "L_H")     {BURNSETT["L_H"]  = p-> value(); BurnUpdated = true;}
+        if (p -> name() == "LKW")     {BURNSETT["LKW"]  = p-> value(); BurnUpdated = true;}
         if (p -> name() == "PREH_R")  {BURNSETT["PREHEAT"]["R"]  = p-> value(); BurnUpdated = true;}
         if (p -> name() == "PREH_G")  {BURNSETT["PREHEAT"]["G"]  = p-> value(); BurnUpdated = true;}
         if (p -> name() == "PREH_B")  {BURNSETT["PREHEAT"]["B"]  = p-> value(); BurnUpdated = true;}
@@ -206,6 +225,7 @@ void setup(void) {
     if (MqttUpdated == true) {SaveFile(MQTTFILENAME, MQTTSETT); Serial.print("Saved Mqtt-Settings.");};
 	  if (SensUpdated == true) {SaveFile(SENSFILENAME, SENSSETT); Serial.print("Saved Sensor-Settings.");};
     if (BurnUpdated == true) {SaveFile(BURNFILENAME, BURNSETT); Serial.print("Saved Burn-Settings.");};
+    if (UsageUpdated == true) {SaveFile(USAGEFILENAME, USAGE); Serial.print("Saved Usage Settings.");};
     
     request->send(200, "text/plain", "Parameters received");
   });
@@ -213,10 +233,11 @@ void setup(void) {
   // Kommandos und Befehle
   server.on("/restart",   HTTP_GET,   [](AsyncWebServerRequest *request){ ESP.restart(); });
   server.on("/reset",     HTTP_GET,   [](AsyncWebServerRequest *request){
-    // LittleFS.remove(MQTTFILENAME);
-    // LittleFS.remove(WIFIFILENAME);
+    LittleFS.remove(MQTTFILENAME);
+    LittleFS.remove(WIFIFILENAME);
     LittleFS.remove(SENSFILENAME);
     LittleFS.remove(BURNFILENAME);
+    LittleFS.remove(USAGEFILENAME);
     request->send(200, "text/plain", "Sensor and Burn setting resetted.");
   });
 
@@ -230,7 +251,7 @@ void setup(void) {
 void SaveFile (const char* Filename, DynamicJsonDocument &Json){
   char json_string[256];
   serializeJson(Json, json_string); 
-  Serial.println (json_string);
+  // Serial.println (json_string);
   File dataFile = LittleFS.open(Filename, "w");
   if (!dataFile) {Serial.println("Failed to open config file for writing"); return;}
   if(dataFile.print(json_string)){Serial.println("- file written");} else {Serial.println("- write failed");}
@@ -253,32 +274,32 @@ bool LoadFile (const char* Filename, DynamicJsonDocument &Json){
 
     Serial.print("File reading success: "); 
     Serial.println(Filename);
-    Serial.print("Content: "); 
-    Serial.println(FileText);
+    // Serial.print("Content: "); 
+    // Serial.println(FileText);
     return true;
   }
 }
 
 void onMqttDisconnect(espMqttClientTypes::DisconnectReason reason) {
-  Serial.printf("Disconnected from MQTT: %u.\n", static_cast<uint8_t>(reason));
-  MqttReady = false; 
-  // delay (1000); // Delay here will cause a restart.
-  mqttClient.connect();
+  if (APMode == false && MQTTSETT["ENAB"] == "True"){
+    Serial.printf("Disconnected from MQTT: %u.\n", static_cast<uint8_t>(reason));
+    MqttReady = false; // delay (1000); // Delay here will cause a restart in Async!
+    mqttClient.connect();
+  }
 }
 void onMqttConnect(bool sessionPresent) {
   Serial.println("Connected to MQTT.");
   MqttReady = true;
-  Serial.println(sessionPresent);
   PublishHASS();
 }
 
 void loop(void) {
-
+// Serial.print (".");// Send alive Message
 // ----------------------------------------------------------
 // Forcing der Werte alle 2 Sekunden für das Webinterface 
 // dadurch Entlastung von MQTT bei gleichbleibenden Werten.
 // ----------------------------------------------------------
-bool ForcedSend = false; if (millis() - Timer2s >= 2000)    {ForcedSend = true; Timer2s  = millis ();}
+bool ForcedSend = false; if (millis() - Timer25s >= 25000)    {ForcedSend = true; Timer25s  = millis ();}
 bool SendHass   = false; if (millis() - Timer60s  >= 60000) {SendHass   = true; Timer60s = millis ();}
 
 if (SendHass){PublishHASS();}
@@ -310,50 +331,94 @@ if (SensReady == true){
   // ----------------------------------------------------------
   // Bei Wertänderung oder alle 2 Sekunden Farbstatus senden
   // ----------------------------------------------------------
-  if (RGB != LastRGB || ForcedSend){
-    events.send(RGB.c_str(), "RGB");  
-    mqttClient.publish("oilmeter/sensor/0/R", 0, true, String(R).c_str());
-    mqttClient.publish("oilmeter/sensor/0/G", 0, true, String(G).c_str());
-    mqttClient.publish("oilmeter/sensor/0/B", 0, true, String(B).c_str());
-    mqttClient.publish("oilmeter/sensor/0/L", 0, true, String(L).c_str());
+  if (RGB != LastSensRGB || ForcedSend){
+    events.send(RGB.c_str(), "LastSensRGB");  
+    if (MqttReady == true){
+      mqttClient.publish("oilmeter/sensor/0/R", 0, true, String(R).c_str());
+      mqttClient.publish("oilmeter/sensor/0/G", 0, true, String(G).c_str());
+      mqttClient.publish("oilmeter/sensor/0/B", 0, true, String(B).c_str());
+      mqttClient.publish("oilmeter/sensor/0/L", 0, true, String(L).c_str());
+    }
   }
 
   int S = BrennerStatus(R,G,B);
 
-  if (S == 3 && LastStat != 3){                                                                       // Wenn brennen beginnt
-    BurnMs = millis();                                                                                // Start des Brenntimers
-    LastAllXSec = ((double)millis() - (double)AllXSec) / 60000.0;                                     // Brennabstand merken
-    AllXSec = millis();                                                                               // Brennabstand rückstellen
+  if (S == 3 && LastBurnStat != 3){                                                                      // Wenn brennen startet
+    TimerBurnMs = millis();                                                                              // Start des Brenntimers
+    LastWaitS = (((double)millis() - (double)TimerWaitMs)) / 1000.0;                                     // Brennabstand merken
+    GesWaitS += LastWaitS;                                                                               // Gesamtzeit errechnen
   }  
 
-  if (S != 3 && LastStat == 3){                                                                       // Wenn brennen stoppt
-    LastBurnS = ((double)millis() - (double)BurnMs) / 1000.0;                                         // Brennzeit merken und auf Sek. anpassen
-    LastBurnH = LastBurnS / 60.0 / 60.0;                                                              // Brennzeit in Stunden
-    LastBurnL = LastBurnH * BURNSETT["L_H"].as<double>() * BURNSETT["COR"].as<double>();              // Berechnen des Verbrauchs in Liter
+  if (S != 3 && LastBurnStat == 3){                                                                      // Wenn brennen stoppt
+    TimerWaitMs = millis();                                                                              // Brennabstand rückstellen
+    LastBurnS = ((double)millis() - (double)TimerBurnMs) / 1000.0;                                       // Brennzeit merken und auf Sek. anpassen
+    LastBurnL = (LastBurnS / 60.0 / 60.0)  * BURNSETT["L_H"].as<double>() * BURNSETT["COR"].as<double>();// Berechnen des Verbrauchs in Liter
+    LastGenkW = LastBurnL * BURNSETT["LKW"].as<double>();                                                // Berechnen der generierung in kW
 
-    Serial.println ("--------------------------------------------------------------");
-    Serial.print ("Burn_s: "); Serial.print (LastBurnS,6); Serial.println (" seconds");
-    Serial.print ("Burn_l: "); Serial.print (LastBurnL,6);   Serial.println (" Liter");
-    Serial.println ("--------------------------------------------------------------");
-    ConsumL += LastBurnL;
+    GesBurnL += LastBurnL;                                                                               // Gesamtanzahl Liter ermitteln
+    GesGenkW += LastGenkW;                                                                               // Gesamtanzahl kW ermitteln
+    GesBurnS += LastBurnS;                                                                               // Gesmtanzahl Brennerlaufzeit
+    ActTankL -= LastBurnL;                                                                               // Tankinhalt reduzieren
+
+    // Serial.println ("--------------------------------------------------------------");
+    // Serial.print ("Burn_s: ");    Serial.print (LastBurnS,6);     Serial.println (" Sekunden");
+    // Serial.print ("Burn_l: ");    Serial.print (LastBurnL,6);     Serial.println (" Liter");
+    // Serial.print ("Burn_kW: ");   Serial.print (LastGenkW,6);     Serial.println (" kWh");
+    // Serial.print ("Total_S: ");   Serial.print (GesBurnS,6);      Serial.println (" Sekunden");
+    // Serial.print ("Total_L: ");   Serial.print (GesBurnL,6);      Serial.println (" Liter");
+    // Serial.print ("Total_kW: ");  Serial.print (GesGenkW,6);      Serial.println (" kWh");
+    // Serial.println ("--------------------------------------------------------------");
+
+    USAGE["LastBurnS"] = LastBurnS;   // Letzte Brennzeit in Sekunden
+    USAGE["LastWaitS"] = LastWaitS;   // Letzte Wartezeit in Sekunden
+    USAGE["LastBurnL"] = LastBurnL;   // letzten Verbrauch in L  speichern
+    USAGE["LastGenkW"] = LastGenkW;   // letzten Verbrauch in kW speichern
+    USAGE["GesBurnL"]  = GesBurnL;    // Gesamten Verbrauch in L speichern
+    USAGE["GesBurnS"]  = GesBurnS;    // Gesamte Brennzeit in Sekunden
+    USAGE["GesWaitS"]  = GesWaitS;    // Gesamte Wartezeit in Sekunden
+    USAGE["GesGenkW"]  = GesGenkW;    // Gesamten Verbrauch in kW speichern
+    USAGE["ActTankL"]  = ActTankL;    // Aktueller Tankinhalt in L
+    SaveFile(USAGEFILENAME, USAGE);
   }
 
-  if (S != LastStat || ForcedSend){
-    events.send(String(S).c_str(), "Status");
-    events.send(String(LastBurnS,6).c_str(), "LastBTime"); 
-    events.send(String(LastAllXSec,6).c_str(), "LastWTime"); 
-    events.send(String(LastBurnL,6).c_str(),   "LastConsL"); 
-
-    // mqttClient.publish("oilmeter/Heap", 0, true, String(ESP.getFreeHeap()).c_str());
-    mqttClient.publish("oilmeter/Burner_Status", 0, true, String(S).c_str());
-    mqttClient.publish("oilmeter/Consumption_l", 0, true, String(ConsumL,6).c_str());
-    mqttClient.publish("oilmeter/Burning_Time", 0, true, String(LastBurnS,6).c_str());
-    mqttClient.publish("oilmeter/Burning_Interval", 0, true, String(LastAllXSec,6).c_str());
-
+  if (ForcedSend){
+    events.send(ESP.getResetReason().c_str(), "LastReset"); 
+    events.send(String(ESP.getFreeHeap()).c_str (), "ESPHeap"); 
   }
 
-  LastRGB = RGB;      // Set last Sensor Status
-  LastStat = S;       // Set last Status
+  // --------------------------------------------------------------------------------------
+  // Wenn sich der Brennerstatus ändert oder Homeassistant ein Update braucht (25s)
+  // --------------------------------------------------------------------------------------
+  if (S != LastBurnStat || ForcedSend){
+    events.send(String(S).c_str(), "LastBurnStat");
+    delay(50);
+    events.send(String(GesBurnS,6).c_str(), "GesBurnS"); 
+    events.send(String(GesWaitS,6).c_str(), "GesWaitL"); 
+    events.send(String(GesBurnL,6).c_str(), "GesBurnL"); 
+    events.send(String(GesGenkW,6).c_str(), "GesGenkW"); 
+    delay(50);
+    events.send(String(LastBurnS,6).c_str(), "LastBurnS"); 
+    events.send(String(LastWaitS,6).c_str(), "LastWaitS"); 
+    events.send(String(LastBurnL,6).c_str(), "LastBurnL"); 
+    events.send(String(LastGenkW,6).c_str(), "LastGenkW"); 
+
+    if (MqttReady == true){
+      mqttClient.publish("oilmeter/LastBurnStat", 0, true, String(S).c_str());
+      mqttClient.publish("oilmeter/LastBurnS", 0, true, String(LastBurnS,6).c_str());
+      mqttClient.publish("oilmeter/LastBurnL", 0, true, String(LastBurnL,6).c_str());
+      mqttClient.publish("oilmeter/LastWaitS", 0, true, String(LastWaitS,6).c_str());
+      mqttClient.publish("oilmeter/LastGenkW", 0, true, String(LastGenkW,6).c_str());
+      mqttClient.publish("oilmeter/GesBurnS", 0, true, String(GesBurnS,6).c_str());
+      mqttClient.publish("oilmeter/GesBurnL", 0, true, String(GesBurnL,6).c_str());
+      mqttClient.publish("oilmeter/GesWaitS", 0, true, String(GesWaitS,6).c_str());
+      mqttClient.publish("oilmeter/GesGenkW", 0, true, String(GesGenkW,6).c_str());
+      mqttClient.publish("oilmeter/ActTankL", 0, true, String(ActTankL,6).c_str());
+      mqttClient.publish("oilmeter/MaxTankL", 0, true, BURNSETT["MAX"]);
+    }
+  }
+
+  LastSensRGB = RGB;      // Set last Sensor Status
+  LastBurnStat = S;       // Set last Status
   delay (250); yield();
 
 } else {
@@ -442,7 +507,6 @@ void InitWifiAP (){
   Serial.print("AP IP address: ");
   Serial.println(IP);
 }     
-
 void InitMQTT(){
   if (APMode == false && MQTTSETT["ENAB"] == "True"){
     mqttClient.onConnect(onMqttConnect);
@@ -451,19 +515,20 @@ void InitMQTT(){
     mqttClient.setCredentials(MQTTSETT["USER"].as<const char*>(), MQTTSETT["PASW"].as<const char*>()).setClientId("OilMeter");
     mqttClient.setServer(ADDR, MQTTSETT["PORT"].as<int>()); 
     
-    Serial.println("---------------------------------");
-    Serial.println("Connecting to MQTT-Broker");
-    Serial.println("---------------------------------");
-    Serial.println (ADDR);
-    Serial.println (MQTTSETT["USER"].as<const char*>());
-    Serial.println (MQTTSETT["PASW"].as<const char*>());
-    Serial.println (MQTTSETT["PORT"].as<int>());
-    Serial.println("---------------------------------");
+    // Serial.println("---------------------------------");
+    // Serial.println("Connecting to MQTT-Broker");
+    // Serial.println("---------------------------------");
+    // Serial.println (ADDR);
+    // Serial.println (MQTTSETT["USER"].as<const char*>());
+    // Serial.println (MQTTSETT["PASW"].as<const char*>());
+    // Serial.println (MQTTSETT["PORT"].as<int>());
+    // Serial.println("---------------------------------");
 
     mqttClient.connect( );
   }
 }
 void InitGYP9960 (){
+  TCS = false;
   if (apds.init() ) {
     Serial.println(F("APDS-9960 initialization complete"));
   } else {
@@ -481,6 +546,7 @@ void InitGYP9960 (){
   delay(500);
 }
 void InitTCS34725 (){
+  TCS = true;
   if (SENSSETT["GAIN"].as<int>() == 1)  {tcs.setGain (TCS34725_GAIN_1X);}
   if (SENSSETT["GAIN"].as<int>() == 4)  {tcs.setGain (TCS34725_GAIN_4X);}
   if (SENSSETT["GAIN"].as<int>() == 16) {tcs.setGain (TCS34725_GAIN_16X);}
@@ -501,7 +567,6 @@ void InitTCS34725 (){
       Serial.println("set LED on");
       digitalWrite(pinLED, HIGH);
     }
-
     SensReady = true;
   } else {
     Serial.println("TCS34725 init failed ... ");
@@ -525,6 +590,7 @@ void DefaultJsonWifi (){
 void DefaultJsonBurn (){
   BURNSETT["TOL"] = 15;
   BURNSETT["L_H"] = 2.1; 
+  BURNSETT["LKW"] = 9.8;  // KW per Liter
   BURNSETT["MAX"] = 4500; 
   BURNSETT["ACT"] = 3000;
   BURNSETT["COR"] = 1.0;
@@ -557,43 +623,70 @@ void DefaultJsonSens (){
   SENSSETT["LIGHT"] = false; 
 }
 void DefaultJsonUsage (){
-  USAGE["LASTWAIT"] = 0;
-  USAGE["LASTCONS"] = 0;
-  USAGE["LASTTIME"] = 0;
+  USAGE["LastBurnS"] = 0;   // Letzte Brennzeit
+  USAGE["LastWaitS"] = 0;   // Letzte Wartezeit
+  USAGE["LastBurnL"] = 0;   // letzten Verbrauch in L  speichern
+  USAGE["LastGenkW"] = 0;   // letzten Verbrauch in kW speichern
+  
+  USAGE["GesBurnL"]  = 0;   // Gesamten Verbrauch in L speichern
+  USAGE["GesBurnS"]  = 0;   // Gesamten Verbrauch in L speichern
+  USAGE["GesWaitS"]  = 0;   // Gesamten Verbrauch in L speichern
+  USAGE["GesGenkW"]  = 0;   // Gesamten Verbrauch in kW speichern
+
+  USAGE["ActTankL"]  = 0;   // Aktueller Tankinhalt in L
 }
 
+const char origArray[][7][60]= 
+{
+  // HASS-NODE                                             NAME              STATE-TOPIC                  UNIQUE-ID                  MEAS-Unit       DEV-CLA  STATE-CLASS
+    {"homeassistant/sensor/oilmeter/color_r/config",       "Color_R",        "oilmeter/sensor/0/R",       "OilMeter_Sensor0_R",      "RGB",         "water", "measurement"},
+    {"homeassistant/sensor/oilmeter/color_g/config",       "Color_G",        "oilmeter/sensor/0/G",       "OilMeter_Sensor0_G",      "RGB",         "water", "measurement"}, 
+    {"homeassistant/sensor/oilmeter/color_b/config",       "Color_B",        "oilmeter/sensor/0/B",       "OilMeter_Sensor0_B",      "RGB",         "water", "measurement"}, 
+    {"homeassistant/sensor/oilmeter/color_l/config",       "Lux",            "oilmeter/sensor/0/L",       "OilMeter_Sensor0_L",      "RGB",         "water", "measurement"}, 
+    {"homeassistant/sensor/oilmeter/LastBurnS/config",     "Letze Brenndauer", "oilmeter/LastBurnS",    "OilMeter_LastBurnS",      "s",    "water", "measurement"}, 
+    {"homeassistant/sensor/oilmeter/LastWaitS/config",     "Letze Wartedauer", "oilmeter/LastWaitS",    "OilMeter_LastWaitS",      "s",    "water", "measurement"}, 
+    {"homeassistant/sensor/oilmeter/LastBurnL/config",     "Letze Brennmenge", "oilmeter/LastBurnL",    "OilMeter_LastBurnL",      "L",    "water", "measurement"}, 
+    {"homeassistant/sensor/oilmeter/LastGenkW/config",     "Letze Generierung","oilmeter/LastGenkW",    "OilMeter_LastGenkW",      "kWh",  "water", "measurement"}, 
+    {"homeassistant/sensor/oilmeter/GesBurnS/config",     "Gesamte Brenndauer", "oilmeter/GesBurnS",    "OilMeter_GesBurnS",      "s",    "water", "total_increasing"}, 
+    {"homeassistant/sensor/oilmeter/GesWaitS/config",     "Gesamte Wartedauer", "oilmeter/GesWaitS",    "OilMeter_GesWaitS",      "s",    "water", "total_increasing"}, 
+    {"homeassistant/sensor/oilmeter/GesBurnL/config",     "Gesamte Brennmenge", "oilmeter/GesBurnL",    "OilMeter_GesBurnL",      "L",    "water", "total_increasing"}, 
+    {"homeassistant/sensor/oilmeter/GesGenkW/config",     "Gesamte Generierung","oilmeter/GesGenkW",    "OilMeter_GesGenkW",      "kWh",  "water", "total_increasing"}, 
+    {"homeassistant/sensor/oilmeter/ActTankL/config",     "Tankinhalt_Aktuell", "oilmeter/ActTankL",    "OilMeter_ActTankL",      "L",    "water", "total_increasing"}, 
+    {"homeassistant/sensor/oilmeter/MaxTankL/config",     "Tankinhalt_Maximal","oilmeter/MaxTankL",     "OilMeter_MaxTankL",      "kWh",  "water", "measurement"},
+    {"homeassistant/sensor/oilmeter/LastBurnStat/config",  "Letzer Brennerstatus", "oilmeter/LastBurnStat", "OilMeter_LastBurnStat", "",    "water", "measurement"} 
+};
 void PublishHASS (){
-if (MQTTSETT["HASS"] == "True"){
+  if (MQTTSETT["HASS"] == "True"){
+    if (MqttReady == true){
+    // mqttClient.publish("homeassistant/sensor/oilmeter/color_l/config",0,true, "{\"name\": \"Consumption\",\"stat_t\":\"oilmeter/Consumption_l\",  \"uniq_id\": \"oilmeter_Consumption_l\",  \"unit_of_meas\": \"L\",  \"dev\": {    \"name\": \"oilmeter\",   \"ids\": \"oilmeter_1\",    \"cu\": \"http://192.168.7.107\",\"mf\": \"oilmeter\",    \"mdl\": \"tcs34725\",    \"sw\": \"v001\"  },  \"exp_aft\": 15,  \"dev_cla\": \"water\",  \"stat_cla\": \"measurement\"}");
 
-// mqttClient.publish("homeassistant/sensor/oilmeter/color_l/config",0,true, "{\"name\": \"Consumption\",\"stat_t\":\"oilmeter/Consumption_l\",  \"uniq_id\": \"oilmeter_Consumption_l\",  \"unit_of_meas\": \"L\",  \"dev\": {    \"name\": \"oilmeter\",   \"ids\": \"oilmeter_1\",    \"cu\": \"http://192.168.7.107\",\"mf\": \"oilmeter\",    \"mdl\": \"tcs34725\",    \"sw\": \"v001\"  },  \"exp_aft\": 15,  \"dev_cla\": \"water\",  \"stat_cla\": \"measurement\"}");
+      // https://www.home-assistant.io/integrations/mqtt/
 
-  // https://www.home-assistant.io/integrations/mqtt/
+        char json_string[512];
+        DynamicJsonDocument HASSETT(1024);
+        String URL = "http://" + WiFi.localIP().toString();
+        int size = sizeof (origArray) / sizeof (origArray[0]);
 
-    char json_string[512];
-    DynamicJsonDocument HASSETT(1024);
-    String URL = "http://" + WiFi.localIP().toString();
-    int size = sizeof (origArray) / sizeof (origArray[0]);
+        HASSETT["dev"]["name"]   =  MQTTSETT["TOPC"];
+        HASSETT["dev"]["ids"]    = "oilmeter_1";
+        HASSETT["dev"]["cu"]     =  URL; // IP
+        HASSETT["dev"]["mf"]     = "Phreak87";
+        HASSETT["dev"]["mdl"]    = "ESP8266+TCS34725/APDS9960";
+        HASSETT["dev"]["sw"]     = "V 1.0";
+        for (int i = 0; i < size; i++){
+          HASSETT["name"]          = origArray[i][1];
+          HASSETT["stat_t"]        = origArray[i][2];
+          HASSETT["uniq_id"]       = origArray[i][3];
+          HASSETT["unit_of_meas"]  = origArray[i][4];
+          HASSETT["exp_aft"]       = 30;
+          HASSETT["dev_cla"]       = origArray[i][5];
+          HASSETT["stat_cla"]      = origArray[i][6];
+          serializeJson (HASSETT,json_string);
+          mqttClient.publish (origArray[i][0],0,true,json_string);
+        }
 
-    HASSETT["dev"]["name"]   = "oilmeter";
-    HASSETT["dev"]["ids"]    = "oilmeter_1";
-    HASSETT["dev"]["cu"]     =  URL; // IP
-    HASSETT["dev"]["mf"]     = "Phreak87";
-    HASSETT["dev"]["mdl"]    = "TCS34725";
-    HASSETT["dev"]["sw"]     = "V001";
-    for (int i = 0; i < size; i++){
-      Serial.println(i);
-      HASSETT["name"]          = origArray[i][1];
-      HASSETT["stat_t"]        = origArray[i][2];
-      HASSETT["uniq_id"]       = origArray[i][3];
-      HASSETT["unit_of_meas"]  = origArray[i][4];
-      HASSETT["exp_aft"]       = 15;
-      HASSETT["dev_cla"]       = origArray[i][5];
-      HASSETT["stat_cla"]      = origArray[i][6];
-      serializeJson (HASSETT,json_string);
-      mqttClient.publish (origArray[i][0],0,true,json_string);
+        // mqttClient.loop ();
+        ESP.wdtFeed();
     }
-
-    // mqttClient.loop ();
-    ESP.wdtFeed();
-}
+  }
 }
