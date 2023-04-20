@@ -1,7 +1,7 @@
 # OilMeter
 
 Measure the oil consumption via the burner status LED on a ESP8266 with a TCS34725 or APDS9960 color sensor.
-BOM is just ~10 Euro for all parts. This project is in active development and NOT FULLY FINISHED yet!
+BOM is just ~10 Euro for all parts. 
 
 ## Oilmeter comes with the following features included:
 - First start as AccessPoint (OilMeter, PWD: OilMeter), after saving Wifi-Settings it will connect to default Wifi.
@@ -26,8 +26,9 @@ really used vs. whats refilled.
 ## Pictures
 
 ![Installation](Pictures/Installation.jpg)
-![Installation](Pictures/Adapter_Plate.png)
-![Installation](Pictures/Webinterface.png)
+![3D Model](Pictures/Adapter_Plate.png)
+![Webinterface](Pictures/Webinterface.png)
+![Homeassistant](Pictures/HassIO.png)
 
 # Connection diagram
 
@@ -41,6 +42,7 @@ really used vs. whats refilled.
 
 #Todo
 
+- Integration of HC-SR04 Distance Sensor for Level Measurement.
 - Multicolor LED for sensor status and system messages
 - better feedback if setting was saved.
 - auto adaptation of the correct factor value on fill-up (needs to be between 2 times full)
