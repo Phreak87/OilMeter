@@ -1,6 +1,6 @@
 # OilMeter
 
-Measure the oil consumption via the burner status LED on a ESP8266 with a TCS34725 or APDS9960 color sensor.
+Measure the oil consumption via the burner status LED on a ESP8266 with a TCS34725 or APDS9960 color sensor. (HC-SR04 planned)
 BOM is just ~10 Euro for all parts. 
 
 ## Oilmeter comes with the following features included:
