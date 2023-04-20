@@ -13,6 +13,7 @@ const char SensorHTML[] PROGMEM = R"=====(
 		<select class="console" id="SENS_TYPE">
 			<option>TCS34725</option>
 			<option>APDS9960</option>
+			<option>HC-SR04</option>
 		</select>
 		<p class="break">Type of the color sensing device</p>
 	</div>
@@ -45,6 +46,30 @@ const char SensorHTML[] PROGMEM = R"=====(
 		<option>True</option>
 		</select>
 		<p class="break">Onboard Light enabled (only TCS34725)</p>
+	</div>
+	<HR/>
+	<div class="setting">
+		<p>Form</p>
+		<select class="console" id="SENS_LIGHT">
+		<option>Rund</option>
+		<option>Eckig</option>
+		</select>
+		<p class="break"></p>
+	</div>
+	<div class="setting">
+		<p>Höhe</p>
+		<input class="console" id="HOH"></input>
+		<p></p>
+	</div>
+	<div class="setting">
+		<p>Durchmesser oder Länge (cm) oben</p>
+		<input class="console" id="DOB"></input>
+		<p></p>
+	</div>
+	<div class="setting">
+		<p>Durchmesser oder Länge (cm) unten</p>
+		<input class="console" id="DUN"></input>
+		<p></p>
 	</div>
 	<div class="setting">
 		<p></p>

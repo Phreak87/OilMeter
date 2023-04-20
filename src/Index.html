@@ -25,7 +25,13 @@ const char IndexHTML[] PROGMEM = R"=====(
 			<ul class="submenu">
 				<li><a href="#" onClick="NavigateFrame('about.html');	hideMenu();"	>Über</a></li>
 				<li><a href="#" onClick="NavigateFrame('restart');		hideMenu();"	>Restart</a></li>
-				<li><a href="#" onClick="NavigateFrame('reset');		hideMenu();"	>Reset</a></li>
+				<li><a href="#" onClick=""												>Reset<i class="arrow right"></i></a>
+					<ul class="submenu">
+						<li><a href="#" onClick="NavigateFrame('RecoverUsage');	hideMenu();"	>Verbrauchsstatistik</a></li>
+						<li><a href="#" onClick="NavigateFrame('RecoverNETW');	hideMenu();"	>MQTT und WLAN</a></li>
+						<li><a href="#" onClick="NavigateFrame('RecoverBSET');	hideMenu();"	>Brenner und Sensor</a></li>
+					</ul>
+				</li>
 				<li><a href="#" onClick="NavigateFrame('update');		hideMenu();"	>Update</a></li>
 			</ul>
 		</li>

@@ -43,22 +43,22 @@ const char BrennerHTML[] PROGMEM = R"=====(
 	<div class="setting">
 		<p>Vorheizen</p>
 		<input class="console" id="PREH_RGB"></input>
-		<a class="Btn" href="#" onclick="document.getElementById('PREH_RGB').value = Color">Aktuelle Farbe</a>
+		<a class="Btn" href="#" onclick="document.getElementById('PREH_RGB').value = Color;document.getElementById('PREH_RGB').nextElementSibling.style.background = 'rgb(' + Color + ')';"		>Aktuelle Farbe</a>
 	</div>
 	<div class="setting">
 		<p>Gebläsestart</p>
 		<input class="console" id="BLOW_RGB"></input>
-		<a class="Btn" href="#" onclick="document.getElementById('BLOW_RGB').value = Color">Aktuelle Farbe</a>
+		<a class="Btn" href="#" onclick="document.getElementById('BLOW_RGB').value = Color;document.getElementById('PREH_RGB').nextElementSibling.style.background = 'rgb(' + Color + ')';"		>Aktuelle Farbe</a>
 	</div>
 	<div class="setting">
 		<p>Brennen</p>
 		<input class="console" id="BURN_RGB"></input>
-		<a class="Btn" href="#" onclick="document.getElementById('BURN_RGB').value = Color">Aktuelle Farbe</a>
+		<a class="Btn" href="#" onclick="document.getElementById('BURN_RGB').value = Color;document.getElementById('PREH_RGB').nextElementSibling.style.background = 'rgb(' + Color + ')';"		>Aktuelle Farbe</a>
 	</div>
 	<div class="setting">
 		<p>Fehler</p>
 		<input class="console" id="ERRO_RGB"></input>
-		<a class="Btn" href="#" onclick="document.getElementById('ERRO_RGB').value = Color">Aktuelle Farbe</a>
+		<a class="Btn" href="#" onclick="document.getElementById('ERRO_RGB').value = Color;document.getElementById('PREH_RGB').nextElementSibling.style.background = 'rgb(' + Color + ')';"		>Aktuelle Farbe</a>
 	</div>
 	<div class="setting">
 		<p></p>
@@ -111,14 +111,14 @@ const char BrennerHTML[] PROGMEM = R"=====(
 	fetch('Burn.json', {})
 	.then(function(response) {return response.json();})
 	.then(function(json) {
-		document.getElementById('PREH_RGB').value = json.PREHEAT.R + "," + json.PREHEAT.G + "," + json.PREHEAT.B;
-		document.getElementById('BLOW_RGB').value = json.BLOW.R    + "," + json.BLOW.G    + "," + json.BLOW.B;
-		document.getElementById('BURN_RGB').value = json.BURN.R    + "," + json.BURN.G    + "," + json.BURN.B; 
-		document.getElementById('ERRO_RGB').value = json.ERROR.R   + "," + json.ERROR.G   + "," + json.ERROR.B;
-		document.getElementById('PREH_RGB').style.background = 'rgb(' + json.PREHEAT.R + "," + json.PREHEAT.G + "," + json.PREHEAT.B + ')';
-		document.getElementById('BLOW_RGB').style.background = 'rgb(' + json.BLOW.R    + "," + json.BLOW.G    + "," + json.BLOW.B + ')';
-		document.getElementById('BURN_RGB').style.background = 'rgb(' + json.BURN.R    + "," + json.BURN.G    + "," + json.BURN.B + ')';
-		document.getElementById('ERRO_RGB').style.background = 'rgb(' + json.ERROR.R   + "," + json.ERROR.G   + "," + json.ERROR.B + ')';
+		document.getElementById('PREH_RGB').value = json.PREHEAT_R + "," + json.PREHEAT_G + "," + json.PREHEAT_B;
+		document.getElementById('BLOW_RGB').value = json.BLOW_R    + "," + json.BLOW_G    + "," + json.BLOW_B;
+		document.getElementById('BURN_RGB').value = json.BURN_R    + "," + json.BURN_G    + "," + json.BURN_B; 
+		document.getElementById('ERRO_RGB').value = json.ERROR_R   + "," + json.ERROR_G   + "," + json.ERROR_B;
+		document.getElementById('PREH_RGB').style.background = 'rgb(' + json.PREHEAT_R + "," + json.PREHEAT_G + "," + json.PREHEAT_B + ')';
+		document.getElementById('BLOW_RGB').style.background = 'rgb(' + json.BLOW_R    + "," + json.BLOW_G    + "," + json.BLOW_B + ')';
+		document.getElementById('BURN_RGB').style.background = 'rgb(' + json.BURN_R    + "," + json.BURN_G    + "," + json.BURN_B + ')';
+		document.getElementById('ERRO_RGB').style.background = 'rgb(' + json.ERROR_R   + "," + json.ERROR_G   + "," + json.ERROR_B + ')';
 		document.getElementById('selectValue').innerHTML = json.TOL;
 		document.getElementById('TOL').value = json.TOL;
 		document.getElementById('MAX').value = json.MAX;

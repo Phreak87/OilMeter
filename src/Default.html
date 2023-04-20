@@ -10,21 +10,22 @@ const char DefaultHTML[] PROGMEM = R"=====(
 <Div class="log" id="log">
 	<div class="setting"><p>Status (Brenner):</p>				<p ID="LastBurnStat">Aus</p>		<p>Aktueller Brennerzustand</p></div>
 	<div class="setting"><p>Status (Sensor):</p>				<p ID="LastSensRGB">RGB(0,0,0)</p>	<p>RGB-Farbcode</p></div>
+	<div class="setting"><p>Beleuchtung:</p>					<a class="Btn" href="#" onclick="fetch('/LightSwitch');">Licht wechseln</a>	<p>Licht umschalten</p></div>
 	<HR>
-	<div class="setting"><p>letzte Brenndauer:</p>				<p id="LastBurnS"></p>				<p>Sekunden</p></div>
-	<div class="setting"><p>letzte Wartedauer:</p>				<p id="LastWaitS"></p>				<p>Sekunden</p></div>
+	<div class="setting"><p>letzte Brenndauer:</p>				<p id="LastBurnM"></p>				<p>Minuten</p></div>
+	<div class="setting"><p>letzte Wartedauer:</p>				<p id="LastWaitM"></p>				<p>Minuten</p></div>
 	<div class="setting"><p>letzter Verbrauch:</p>				<p id="LastBurnL"></p>				<p>Liter</p></div>
 	<div class="setting"><p>letzte Generierung:</p>				<p id="LastGenkW"></p>				<p>kW Heizenergie</p></div>
 	<HR>
-	<div class="setting"><p>Gesamte  Brenndauer:</p>			<p id="GesBurnS"></p>				<p>Sekunden</p></div>
-	<div class="setting"><p>Gesamte Wartedauer:</p>				<p id="GesWaitS"></p>				<p>Sekunden</p></div>
+	<div class="setting"><p>Gesamte Brenndauer:</p>				<p id="GesBurnM"></p>				<p>Minuten</p></div>
+	<div class="setting"><p>Gesamte Wartedauer:</p>				<p id="GesWaitM"></p>				<p>Minuten</p></div>
 	<div class="setting"><p>Gesamter Verbrauch:</p>				<p id="GesBurnL"></p>				<p>Liter</p></div>
 	<div class="setting"><p>Gesamte Generierung:</p>			<p id="GesGenkW"></p>				<p>kWh</p></div>
 	<HR>
 	<div class="setting"><p>Tankinhalt verbleibend:</p>			<p id="ActTankL"></p>				<p>Liter</p></div>
 	<div class="setting"><p>Tankinhalt maximal:</p>				<p id="MaxTankL"></p>				<p>Liter</p></div>
 	<HR>
-	<div class="setting"><p>Letzes Signal:</p>					<p id="LastSignal"></p>			<p>Letzte Nachricht</p></div>
+	<div class="setting"><p>Letzes Signal:</p>					<p id="LastSignal"></p>				<p>Letzte Nachricht</p></div>
 	<div class="setting"><p>ESP-Heap:</p>						<p id="ESPHeap"></p>				<p>Free Heap Memory</p></div>
 	<div class="setting"><p>Reset-Grund:</p>					<p id="LastReset"></p>				<p>Resetgrund</p></div>
 </div>
@@ -43,9 +44,13 @@ const char DefaultHTML[] PROGMEM = R"=====(
 		document.getElementById('LastSignal').innerText = new Date().toLocaleString('de-DE');
 		document.getElementById('LastBurnStat').innerText = ["Aus","Vorheizen","Gebläse","Brennen","Fehler"][parseInt(e.data)];
 	  }, false);
-	  source.addEventListener('LastBurnS', function(e) {
+	  source.addEventListener('LastBurnM', function(e) {
 		document.getElementById('LastSignal').innerText = new Date().toLocaleString('de-DE');
-		document.getElementById('LastBurnS').innerText = e.data;
+		document.getElementById('LastBurnM').innerText = e.data;
+	  }, false);
+	  source.addEventListener('LastWaitM', function(e) {
+		document.getElementById('LastSignal').innerText = new Date().toLocaleString('de-DE');
+		document.getElementById('LastWaitM').innerText = e.data;
 	  }, false);
 	  source.addEventListener('LastBurnL', function(e) {
 		document.getElementById('LastSignal').innerText = new Date().toLocaleString('de-DE');
@@ -55,14 +60,14 @@ const char DefaultHTML[] PROGMEM = R"=====(
 		document.getElementById('LastSignal').innerText = new Date().toLocaleString('de-DE');
 		document.getElementById('LastGenkW').innerText = e.data;
 	  }, false);
-	  source.addEventListener('LastWaitS', function(e) {
-		document.getElementById('LastSignal').innerText = new Date().toLocaleString('de-DE');
-		document.getElementById('LastWaitS').innerText = e.data;
-	  }, false);
 	  
-	  source.addEventListener('GesBurnS', function(e) {
+	  source.addEventListener('GesBurnM', function(e) {
 		document.getElementById('LastSignal').innerText = new Date().toLocaleString('de-DE');
-		document.getElementById('GesBurnS').innerText = e.data;
+		document.getElementById('GesBurnM').innerText = e.data;
+	  }, false);
+	  source.addEventListener('GesWaitM', function(e) {
+		document.getElementById('LastSignal').innerText = new Date().toLocaleString('de-DE');
+		document.getElementById('GesWaitM').innerText = e.data;
 	  }, false);
 	  source.addEventListener('GesBurnL', function(e) {
 		document.getElementById('LastSignal').innerText = new Date().toLocaleString('de-DE');
@@ -94,12 +99,12 @@ const char DefaultHTML[] PROGMEM = R"=====(
 	fetch('Usage.json', {})
 	.then(function(response) {return response.json();})
 	.then(function(json) {
-		document.getElementById('LastBurnS').innerText = json.LastBurnS;
-		document.getElementById('LastWaitS').innerText = json.LastWaitS;
+		document.getElementById('LastBurnM').innerText = json.LastBurnM;
+		document.getElementById('LastWaitM').innerText = json.LastWaitM;
 		document.getElementById('LastBurnL').innerText = json.LastBurnL;
 		document.getElementById('LastGenkW').innerText = json.LastGenkW;
-		document.getElementById('GesBurnS').innerText  = json.GesBurnS;
-		document.getElementById('GesWaitS').innerText  = json.GesWaitS;
+		document.getElementById('GesBurnM').innerText  = json.GesBurnM;
+		document.getElementById('GesWaitM').innerText  = json.GesWaitM;
 		document.getElementById('GesBurnL').innerText  = json.GesBurnL;
 		document.getElementById('GesGenkW').innerText  = json.GesGenkW;
 		document.getElementById('ActTankL').innerText   = json.ActTankL;
