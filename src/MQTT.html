@@ -72,9 +72,9 @@ const char MqttHTML[] PROGMEM = R"=====(
 		document.getElementById('PASW').value = json.PASW;
 		document.getElementById('USER').value = json.USER;
 		document.getElementById('PORT').value = json.PORT;
-		document.getElementById('HASS').value = json.HASS;
+		document.getElementById('HASS').value = (json.HASS == true ? "True" : "False");
+		document.getElementById('ENAB').value = (json.ENAB == true ? "True" : "False");
 		document.getElementById('TOPC').value = json.TOPC;
-		document.getElementById('ENAB').value = json.ENAB;
 	});
 </Script>
 

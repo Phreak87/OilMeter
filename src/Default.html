@@ -10,10 +10,10 @@ const char DefaultHTML[] PROGMEM = R"=====(
 <Div class="log" id="log">
 	<div class="setting"><p>Status (Brenner):</p>				<p ID="LastBurnStat">Aus</p>		<p>Aktueller Brennerzustand</p></div>
 	<div class="setting"><p>Status (Sensor):</p>				<p ID="LastSensRGB">RGB(0,0,0)</p>	<p>RGB-Farbcode</p></div>
-	<div class="setting"><p>Beleuchtung:</p>					<a class="Btn" href="#" onclick="fetch('/LightSwitch');">Licht wechseln</a>	<p>Licht umschalten</p></div>
+	<div class="setting"><p>Beleuchtung:</p>					<a class="Btn" href="#" onclick="fetch('/LightSwitch');">Licht umschalten</a>	<p></p></div>
 	<HR>
-	<div class="setting"><p>letzte Brenndauer:</p>				<p id="LastBurnM"></p>				<p>Minuten</p></div>
-	<div class="setting"><p>letzte Wartedauer:</p>				<p id="LastWaitM"></p>				<p>Minuten</p></div>
+	<div class="setting"><p>letzte Brenndauer:</p>				<p id="LastBurnM"></p>				<p>Sekunden</p></div>
+	<div class="setting"><p>letzte Wartedauer:</p>				<p id="LastWaitM"></p>				<p>Sekunden</p></div>
 	<div class="setting"><p>letzter Verbrauch:</p>				<p id="LastBurnL"></p>				<p>Liter</p></div>
 	<div class="setting"><p>letzte Generierung:</p>				<p id="LastGenkW"></p>				<p>kW Heizenergie</p></div>
 	<HR>
@@ -31,6 +31,9 @@ const char DefaultHTML[] PROGMEM = R"=====(
 </div>
 
 <Script type="text/javascript">
+	function setUpdate (){
+		document.getElementById('LastSignal').innerText = new Date().toLocaleString('de-DE');
+	}
 	if (!!window.EventSource) {
 	  var source = new EventSource('/events');
 
@@ -40,74 +43,46 @@ const char DefaultHTML[] PROGMEM = R"=====(
 		}
 	  }, false);
 	
-	  source.addEventListener('LastBurnStat', function(e) {
-		document.getElementById('LastSignal').innerText = new Date().toLocaleString('de-DE');
-		document.getElementById('LastBurnStat').innerText = ["Aus","Vorheizen","Gebläse","Brennen","Fehler"][parseInt(e.data)];
-	  }, false);
-	  source.addEventListener('LastBurnM', function(e) {
-		document.getElementById('LastSignal').innerText = new Date().toLocaleString('de-DE');
-		document.getElementById('LastBurnM').innerText = e.data;
-	  }, false);
-	  source.addEventListener('LastWaitM', function(e) {
-		document.getElementById('LastSignal').innerText = new Date().toLocaleString('de-DE');
-		document.getElementById('LastWaitM').innerText = e.data;
-	  }, false);
-	  source.addEventListener('LastBurnL', function(e) {
-		document.getElementById('LastSignal').innerText = new Date().toLocaleString('de-DE');
-		document.getElementById('LastBurnL').innerText = e.data;
-	  }, false);
-	  source.addEventListener('LastGenkW', function(e) {
-		document.getElementById('LastSignal').innerText = new Date().toLocaleString('de-DE');
-		document.getElementById('LastGenkW').innerText = e.data;
-	  }, false);
-	  
-	  source.addEventListener('GesBurnM', function(e) {
-		document.getElementById('LastSignal').innerText = new Date().toLocaleString('de-DE');
-		document.getElementById('GesBurnM').innerText = e.data;
-	  }, false);
-	  source.addEventListener('GesWaitM', function(e) {
-		document.getElementById('LastSignal').innerText = new Date().toLocaleString('de-DE');
-		document.getElementById('GesWaitM').innerText = e.data;
-	  }, false);
-	  source.addEventListener('GesBurnL', function(e) {
-		document.getElementById('LastSignal').innerText = new Date().toLocaleString('de-DE');
-		document.getElementById('GesBurnL').innerText = e.data;
-	  }, false);
-	  source.addEventListener('GesGenkW', function(e) {
-		document.getElementById('LastSignal').innerText = new Date().toLocaleString('de-DE');
-		document.getElementById('GesGenkW').innerText = e.data;
-	  }, false);
+	  source.addEventListener('LastBurnStat', function(e) {document.getElementById('LastBurnStat').innerText = ["Aus","Vorheizen","Gebläse","Brennen","Fehler"][parseInt(e.data)];setUpdate();}, false);
+	  source.addEventListener('LastBurnM',    function(e) {document.getElementById('LastBurnM').innerText = parseFloat(e.data).toFixed(2) + " Sec (" + S_to_M_S(parseFloat(e.data)) + ")" ;setUpdate();}, false);
+	  source.addEventListener('LastWaitM',    function(e) {document.getElementById('LastWaitM').innerText = parseFloat(e.data).toFixed(2) + " Sec (" + S_to_M_S(parseFloat(e.data)) + ")" ;setUpdate();}, false);
+	  source.addEventListener('LastBurnL',    function(e) {document.getElementById('LastBurnL').innerText = parseFloat(e.data).toFixed(4) + " L"  ;setUpdate();}, false);
+	  source.addEventListener('LastGenkW',    function(e) {document.getElementById('LastGenkW').innerText = parseFloat(e.data).toFixed(4) + " kW" ;setUpdate();}, false);
+	  source.addEventListener('GesBurnM',     function(e) {document.getElementById('GesBurnM').innerText  = parseFloat(e.data).toFixed(2) + " Min";setUpdate();}, false);
+	  source.addEventListener('GesWaitM',     function(e) {document.getElementById('GesWaitM').innerText  = parseFloat(e.data).toFixed(2) + " Min";setUpdate();}, false);
+	  source.addEventListener('GesBurnL',     function(e) {document.getElementById('GesBurnL').innerText  = parseFloat(e.data).toFixed(4) + " L"  ;setUpdate();}, false);
+	  source.addEventListener('GesGenkW',     function(e) {document.getElementById('GesGenkW').innerText  = parseFloat(e.data).toFixed(4) + " kW" ;setUpdate();}, false);
 
 	  source.addEventListener('LastSensRGB', function(e) {
-		document.getElementById('LastSignal').innerText = new Date().toLocaleString('de-DE');
 		document.getElementById('LastSensRGB').innerText = "RGB(" + e.data + ")";
-		document.getElementById('LastSensRGB').style.backgroundColor = 'rgb(' + e.data + ')';
+		document.getElementById('LastSensRGB').style.backgroundColor = 'rgb(' + e.data + ')';setUpdate();
 	  }, false);
 
-	  source.addEventListener('ESPHeap', function(e) {
-		document.getElementById('LastSignal').innerText = new Date().toLocaleString('de-DE');
-		document.getElementById('ESPHeap').innerText = e.data;
-	  }, false);
-	  source.addEventListener('LastReset', function(e) {
-		document.getElementById('LastSignal').innerText = new Date().toLocaleString('de-DE');
-		document.getElementById('LastReset').innerText = e.data;
-	  }, false);
+	  source.addEventListener('ESPHeap', function(e) {document.getElementById('ESPHeap').innerText = e.data;setUpdate();}, false);
+	  source.addEventListener('LastReset', function(e){document.getElementById('LastReset').innerText = e.data;setUpdate();}, false);
 	}
 </Script>
 
 <Script type="text/javascript">
+	function S_to_M_S(Seconds) {
+		hour = Math.floor(Seconds / 3600);			if ( hour < 10 ) {hour = "0" + hour;};
+		minute = Math.floor((Seconds%3600) / 60);	if ( minute < 10 ) {minute = "0"+minute;};
+		second = Math.floor(Seconds%60);			if ( second < 10 ) {second = "0"+second;};
+		return hour + ":" + minute + ":" + second;
+	}
+
 	fetch('Usage.json', {})
 	.then(function(response) {return response.json();})
 	.then(function(json) {
-		document.getElementById('LastBurnM').innerText = json.LastBurnM;
-		document.getElementById('LastWaitM').innerText = json.LastWaitM;
-		document.getElementById('LastBurnL').innerText = json.LastBurnL;
-		document.getElementById('LastGenkW').innerText = json.LastGenkW;
-		document.getElementById('GesBurnM').innerText  = json.GesBurnM;
-		document.getElementById('GesWaitM').innerText  = json.GesWaitM;
-		document.getElementById('GesBurnL').innerText  = json.GesBurnL;
-		document.getElementById('GesGenkW').innerText  = json.GesGenkW;
-		document.getElementById('ActTankL').innerText   = json.ActTankL;
+		document.getElementById('LastBurnM').innerText = parseFloat(json.LastBurnM).toFixed(2) + " Sec (" + S_to_M_S(parseFloat(json.LastBurnM)) + ")";
+		document.getElementById('LastWaitM').innerText = parseFloat(json.LastWaitM).toFixed(2) + " Sec (" + S_to_M_S(parseFloat(json.LastWaitM)) + ")";
+		document.getElementById('LastBurnL').innerText = parseFloat(json.LastBurnL).toFixed(4) + " L";
+		document.getElementById('LastGenkW').innerText = parseFloat(json.LastGenkW).toFixed(4) + " kW";
+		document.getElementById('GesBurnM').innerText  = parseFloat(json.GesBurnM).toFixed(2)  + " Min";
+		document.getElementById('GesWaitM').innerText  = parseFloat(json.GesWaitM).toFixed(2)  + " Min";
+		document.getElementById('GesBurnL').innerText  = parseFloat(json.GesBurnL).toFixed(4)  + " L";
+		document.getElementById('GesGenkW').innerText  = parseFloat(json.GesGenkW).toFixed(4)  + " kW";
+		document.getElementById('ActTankL').innerText  = parseFloat(json.ActTankL).toFixed(4)  + " L";
 	});
 	fetch('Burn.json', {})
 	.then(function(response) {return response.json();})

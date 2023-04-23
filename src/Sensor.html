@@ -49,15 +49,25 @@ const char SensorHTML[] PROGMEM = R"=====(
 	</div>
 	<HR/>
 	<div class="setting">
-		<p>Form</p>
+		<p>Berechnung:</p>
 		<select class="console" id="SENS_LIGHT">
-		<option>Rund</option>
-		<option>Eckig</option>
+		<option>Standard</option>
+		<option>Füllstandsliste</option>
 		</select>
 		<p class="break"></p>
 	</div>
 	<div class="setting">
 		<p>Höhe</p>
+		<input class="console" id="FSL"></input>
+		<p></p>
+	</div>
+	<div class="setting">
+		<p>Messabstand</p>
+		<input class="console" id="MES"></input>
+		<p></p>
+	</div>
+	<div class="setting">
+		<p>Werteliste (L, 100%,90%,...,10%)</p>
 		<input class="console" id="HOH"></input>
 		<p></p>
 	</div>

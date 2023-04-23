@@ -80,17 +80,17 @@ struct BURNStruct {
   int BURN_R=70;
   int BURN_G=115;
   int BURN_B=20;
-  int ERROR_R=255;
+  int ERROR_R=0;
   int ERROR_G=0;
-  int ERROR_B=0;
+  int ERROR_B=255;
 
   bool Load () {
-    DynamicJsonDocument JSON_DOC(320);
+    DynamicJsonDocument JSON_DOC(512);
     bool LoadedUsage = LoadFile ("Burn.json", JSON_DOC);  
     if(LoadedUsage == false){Save();};
     TOL = JSON_DOC["TOL"];
     L_H = JSON_DOC["L_H"]; 
-    LKW = JSON_DOC["LKW"];  // KW per Liter
+    LKW = JSON_DOC["LKW"];
     MAX = JSON_DOC["MAX"]; 
     ACT = JSON_DOC["ACT"];
     COR = JSON_DOC["COR"];
@@ -106,10 +106,9 @@ struct BURNStruct {
     ERROR_R = JSON_DOC["ERROR_R"].as<int>();
     ERROR_G = JSON_DOC["ERROR_G"].as<int>();
     ERROR_B = JSON_DOC["ERROR_B"].as<int>();
-
-    Serial.print   (BURN_R);
-    Serial.print   (BURN_G);
-    Serial.println (BURN_B);
+    // Serial.print   (ERROR_R); // Letzte eingelesene Werte Debuggen
+    // Serial.print   (ERROR_G); // Letzte eingelesene Werte Debuggen
+    // Serial.println (ERROR_B); // Letzte eingelesene Werte Debuggen
     return true;
   }
   bool Save (){
@@ -314,6 +313,10 @@ bool SensReady = false;            // Wenn Sensor init OK
 bool MqttReady = false;            // Wenn MQTT init OK
 int numberOfNetworks = 0;          // Anzahl gefundener Wlan-Netzwerke
 const byte pinLED = D6;            // LED-Pin bei TCS-Sensor/Int bei APDS
+const byte ECHO = D8;              // HC-SR04 Echo
+const byte TRIG = D7;              // HC-SR04 Trig
+long duration;                     // Variable um die Zeit der Ultraschall-Wellen zu speichern
+float distance;                    // Variable um die Entfernung zu berechnen
 bool LightOn = true;               // Licht ein oder ausgeschaltet
 
 // --------------------------------------------------------------------------------------
@@ -335,6 +338,8 @@ void setup(void) {
   Serial.begin(115200);                   // Serielle Konsole aktivieren (115200)
   Serial.println("");Serial.println("");  // Leerzeilen um vom Bootcode abzusetzen
   pinMode (pinLED, OUTPUT);               // LED-Pin des Sensors.
+  pinMode (TRIG, OUTPUT);                 // TRIG-Pin: Output
+  pinMode (ECHO, INPUT);                  // ECHO-Pin: Input
 
   // Disable the Watchdog (Debugging)
   // ESP.wdtDisable();
@@ -486,6 +491,22 @@ void setup(void) {
     };
   });
 
+  // -----------------------------------------------------------------------------
+  // Diese Funktion dient dazu die Werte direkt aus den Structs zu lesen weil 
+  // beim einlesen der Dateien -> Konvertieren zu JSON -> Werte ausgeben bei
+  // zu wenig Json-Speicher einfach 0 ausgegeben wird. Ist der letzte Wert einer
+  // Struct nicht der angegebene Wert der JSON, so sollte der Speicher des Doks 
+  // erhöht werden. 
+  // -----------------------------------------------------------------------------
+  server.on("/ReadMem",     HTTP_GET,   [](AsyncWebServerRequest *request){
+    AsyncResponseStream  *response = request->beginResponseStream("text/plain");
+    response->println(BURNSETT.ERROR_R);
+    response->println(BURNSETT.ERROR_G);
+    response->println(BURNSETT.ERROR_B);
+    response->println(USAGE.ActTankL);
+    request->send(response);
+  });
+
   server.on("/RecoverUsage",     HTTP_GET,   [](AsyncWebServerRequest *request){
     request->send(200, "text/plain", "Sensor and Burn setting resetted. Reboot.");
     LittleFS.remove("Usage.json"); 
@@ -526,34 +547,38 @@ void onMqttConnect(bool sessionPresent) {
 
 void loop(void) {
 
-// Serial.print (".");// Send alive Message
-// ----------------------------------------------------------
-// Forcing der Werte alle 2 Sekunden für das Webinterface 
-// dadurch Entlastung von MQTT bei gleichbleibenden Werten.
-// ----------------------------------------------------------
+  digitalWrite(TRIG, LOW);  delayMicroseconds(2);
+  digitalWrite(TRIG, HIGH); delayMicroseconds(10);
+  digitalWrite(TRIG, LOW);  duration = pulseIn(ECHO, HIGH); distance = duration * 0.034 / 2;
+  Serial.println("Entfernung: " + String(distance) + "cm");
+  Serial.println ("Liter Verbleibend:" + String(LiterfromDistance(distance)) + " L");
+  
+// -------------------------------------------------------------
+// Forcing von Werten alle X Sekunden (unabhängig von Sensoren)
+// -------------------------------------------------------------
 bool Force2S = false;  if (millis() - Timer2s >= 2000)   {Force2S = true; Timer2s    = millis ();} // ESP-Heap, Color + Status
 bool Force25S = false; if (millis() - Timer25s >= 25000) {Force25S = true; Timer25s  = millis ();} // Consumption values
 bool Force60S = false; if (millis() - Timer60s >= 60000) {Force60S  = true; Timer60s = millis ();} // Hass-Republish
 
-if (Force60S){PublishHASS();}
-
-  // ----------------------------------------------------------
-  // Prüfen ob das China-Glump noch werte liefert
-  // ----------------------------------------------------------
-if (Force25S){
-  if (SensReady == true){
-    uint8_t x = tcs.read8(TCS34725_ID);
-    if ((x != 0x4d) && (x != 0x44) && (x != 0x10)) {
-      SensReady = false;
-      events.send("Sensor antwortet nicht.", "LastSensRGB");
-      Serial.println("Sensor antwortet nicht.");
+  if (Force2S){   // Heap + Reset
+    events.send(ESP.getResetReason().c_str(), "LastReset"); 
+    events.send(String(ESP.getFreeHeap()).c_str (), "ESPHeap"); 
+  }
+  if (Force25S){  // Sensor ready
+    if (SensReady == true){
+      uint8_t x = tcs.read8(TCS34725_ID);
+      if ((x != 0x4d) && (x != 0x44) && (x != 0x10)) {
+        SensReady = false;
+        events.send("Sensor antwortet nicht.", "LastSensRGB");
+        Serial.println("Sensor antwortet nicht.");
+      }
     }
   }
-}
+  if (Force60S){  // Hass-Publish
+    PublishHASS();
+  }
 
 if (SensReady == true){
-
-
   // ----------------------------------------------------------
   // Sensorwerte (TCS,GYP) erfassen und in 
   // R,G,B,L als integer (0-255) normalisieren.
@@ -593,21 +618,34 @@ if (SensReady == true){
 
   if (S == 3 && LastBurnStat != 3){                                                                      // Wenn brennen startet
     TimerBurnMs = millis();                                                                              // Start des Brenntimers
-    USAGE.LastWaitM = (((double)millis() - (double)TimerWaitMs)) / 60000.0;                              // Brennabstand merken
-    USAGE.GesWaitM += USAGE.LastWaitM;                                                                   // Gesamtzeit errechnen
+    USAGE.LastWaitM = (((double)millis() - (double)TimerWaitMs)) / 60000.0;                              // letzte Wartezeit setzen
+    USAGE.GesWaitM += USAGE.LastWaitM;                                                                   // gesamte Wartezeit setzen
     USAGE.Save();
+  }  
+
+  if (S == 3){                                                                                           // Während dem Brennen  
+    double TimeS = (double)(millis() - TimerBurnMs) / 1000;                                             
+    double Verbr = TimeS  * (BURNSETT.L_H / 3600.0) * BURNSETT.COR;                                      // Berechnen des Verbrauchs in Liter
+    double GenkW = Verbr * BURNSETT.LKW;                                                                 // Berechnen der generierung in kW
+    events.send(String(TimeS,2).c_str(), "LastBurnM"); 
+    events.send(String(Verbr,4).c_str(), "LastBurnL"); 
+    events.send(String(GenkW,4).c_str(), "LastGenkW"); 
+  }  
+  if (S != 3){                                                                                           // Während dem Warten 
+    double TimeS = (double)(millis() - TimerWaitMs) / 1000;                                              
+    events.send(String(TimeS).c_str(), "LastWaitM"); 
   }  
 
   if (S != 3 && LastBurnStat == 3){                                                                      // Wenn brennen stoppt
     TimerWaitMs = millis();                                                                              // Brennabstand rückstellen
-    USAGE.LastBurnM = ((double)millis() - (double)TimerBurnMs) / 60000.0;                                      // Brennzeit merken und auf Sek. anpassen
-    USAGE.LastBurnL = (USAGE.LastBurnM / 60.0)  * BURNSETT.L_H * BURNSETT.COR;                                       // Berechnen des Verbrauchs in Liter
-    USAGE.LastGenkW = USAGE.LastBurnL * BURNSETT.LKW;                                                                // Berechnen der generierung in kW
+    USAGE.LastBurnM = (double)(millis() - TimerBurnMs) / 1000.0;                                         // Brennzeit merken und auf Sek. anpassen
+    USAGE.LastBurnL = USAGE.LastBurnM  * (BURNSETT.L_H / 3600.0) * BURNSETT.COR;                         // Berechnen des Verbrauchs in Liter
+    USAGE.LastGenkW = USAGE.LastBurnL * BURNSETT.LKW;                                                    // Berechnen der generierung in kW
 
-    USAGE.GesBurnL += USAGE.LastBurnL;                                                                               // Gesamtanzahl Liter ermitteln
-    USAGE.GesGenkW += USAGE.LastGenkW;                                                                               // Gesamtanzahl kW ermitteln
-    USAGE.GesBurnM += USAGE.LastBurnM;                                                                               // Gesmtanzahl Brennerlaufzeit
-    USAGE.ActTankL -= USAGE.LastBurnL;                                                                               // Tankinhalt reduzieren
+    USAGE.GesBurnL += USAGE.LastBurnL;                                                                   // Gesamtanzahl Liter ermitteln
+    USAGE.GesGenkW += USAGE.LastGenkW;                                                                   // Gesamtanzahl kW ermitteln
+    USAGE.GesBurnM += USAGE.LastBurnM / 60;                                                              // Gesmtanzahl Brennerlaufzeit (Minuten)
+    USAGE.ActTankL -= USAGE.LastBurnL;                                                                   // Tankinhalt reduzieren
 
     // Serial.println ("--------------------------------------------------------------");
     // Serial.print ("Burn_s: ");    Serial.print (LastBurnS,6);     Serial.println (" Sekunden");
@@ -620,14 +658,6 @@ if (SensReady == true){
     USAGE.Save();
   }
 
-  if (S == 3){ // Wärend dem Brennen                                                                                        
-    events.send(String(millis() - TimerBurnMs / 3600000.0 ,6).c_str(), "LastBurnM"); 
-  }  
-
-  if (Force2S){
-    events.send(ESP.getResetReason().c_str(), "LastReset"); 
-    events.send(String(ESP.getFreeHeap()).c_str (), "ESPHeap"); 
-  }
 
   // --------------------------------------------------------------------------------------
   // Wenn sich der Brennerstatus ändert oder Homeassistant ein Update braucht (25s)
@@ -660,7 +690,7 @@ if (SensReady == true){
 
   LastSensRGB = RGB;      // Set last Sensor Status
   LastBurnStat = S;       // Set last Status
-  delay (200); 
+  delay (250); 
   yield();
 
 } else {
@@ -672,9 +702,31 @@ if (SensReady == true){
     events.send("128,128,128", "LastSensRGB");
     events.send("Sensor Fehler!", "LastSensRGB");
     Serial.println ("Sensor Fehler!");
+    delay (2000);
   }
 }
+delay (1000);
+}
 
+double LiterfromDistance (double Measurement){
+  // Testvariablen
+  double Hoehe    =  100; // cm
+  double LenOben  =  20;  // cm
+  double LenUnten =  10;  // cm
+  double Abstand  =  10;  // cm
+  double LiterGes =  250; // L
+  double HoeheInv   = Abstand + Hoehe -  Measurement;
+  double LiterCalc  = (Hoehe * 3.1415 / 12 * ((LenOben*LenOben) + LenOben * LenUnten + (LenUnten * LenUnten))) / 1000;
+  double FuellBreit = LenUnten + (LenOben - LenUnten) * HoeheInv / Hoehe;
+  double LiterAct   = (HoeheInv * 3.1415 / 12 * ((FuellBreit*FuellBreit) + FuellBreit * LenUnten + (LenUnten * LenUnten))) / 1000;
+
+  // Serial.print ("VolCalc:"); Serial.println (LiterCalc);
+  // Serial.print ("VolAct:"); Serial.println (LiterAct);
+  // Serial.print ("FuellBreit:"); Serial.println (FuellBreit);
+  // Serial.print ("Percent:"); Serial.println (LiterAct / LiterCalc);
+  // Serial.print ("Liter:"); Serial.println (LiterGes * LiterAct / LiterCalc);
+
+  return LiterGes * LiterAct / LiterCalc;
 }
 
 int BrennerStatus (int &R,int &G,int &B){
@@ -840,8 +892,8 @@ const char origArray[][7][60]= {
     {"homeassistant/sensor/oilmeter/color_g/config",      "Color_G",              "oilmeter/sensor/0/G",   "OilMeter_Sensor0_G",      "RGB",         "gas", "measurement"}, 
     {"homeassistant/sensor/oilmeter/color_b/config",      "Color_B",              "oilmeter/sensor/0/B",   "OilMeter_Sensor0_B",      "RGB",         "gas", "measurement"}, 
     {"homeassistant/sensor/oilmeter/color_l/config",      "Lux",                  "oilmeter/sensor/0/L",   "OilMeter_Sensor0_L",      "RGB",         "gas", "measurement"}, 
-    {"homeassistant/sensor/oilmeter/LastBurnM/config",    "Letze Brenndauer",     "oilmeter/LastBurnM",    "OilMeter_LastBurnM",      "Min",         "gas", "measurement"}, 
-    {"homeassistant/sensor/oilmeter/LastWaitM/config",    "Letze Wartedauer",     "oilmeter/LastWaitM",    "OilMeter_LastWaitM",      "Min",         "gas", "measurement"}, 
+    {"homeassistant/sensor/oilmeter/LastBurnM/config",    "Letze Brenndauer",     "oilmeter/LastBurnM",    "OilMeter_LastBurnM",      "Sec",         "gas", "measurement"}, 
+    {"homeassistant/sensor/oilmeter/LastWaitM/config",    "Letze Wartedauer",     "oilmeter/LastWaitM",    "OilMeter_LastWaitM",      "Sec",         "gas", "measurement"}, 
     {"homeassistant/sensor/oilmeter/LastBurnL/config",    "Letze Brennmenge",     "oilmeter/LastBurnL",    "OilMeter_LastBurnL",      "L",           "gas", "measurement"}, 
     {"homeassistant/sensor/oilmeter/LastGenkW/config",    "Letze Generierung",    "oilmeter/LastGenkW",    "OilMeter_LastGenkW",      "kWh",         "gas", "measurement"}, 
     {"homeassistant/sensor/oilmeter/GesBurnM/config",     "Gesamte Brenndauer",   "oilmeter/GesBurnM",     "OilMeter_GesBurnM",       "Min",         "gas", "total_increasing"}, 
