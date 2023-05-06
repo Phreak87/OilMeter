@@ -1,7 +1,14 @@
 # OilMeter
 
-Measure oil consumption on a ESP8266 via TCS34725 or APDS9960 color sensors and the burner status-LED or 
-HC-SR04/JSN-SR04T distance-sensor (currently implementation phase).
+Measure fluid consumption and levels on a ESP8266 via 
+- TCS34725 or APDS9960 color sensors and the burner status-LED.
+- HC-SR04/JSN-SR04T distance-sensor (just leveling).
+- Prepared also for ():
+- VL53L0X Laser Distance (Not use for clear Water or add a swimmer)
+- SKU237545 Pressure Sensor
+- HK1100C Pressure Sensor
+- HX711 weight Sensor
+- Trigger Sensor 
 
 ## Oilmeter comes with the following features included:
 - First start as AccessPoint (OilMeter, PWD: OilMeter), after saving Wifi-Settings it will connect to default Wifi.
@@ -52,14 +59,9 @@ really used vs. whats refilled via the adaption factor in the webinterface.
 
 #Todo
 
-- Integration of HC-SR04 Distance Sensor for Level Measurement.
 - Multicolor LED for sensor status and system messages
-- better feedback if setting was saved.
 - auto adaptation of the correct factor value on fill-up (needs to be between 2 times full)
 - animated svg-picture of the tank volume in percent
-- Show system up time in webinterface.
 - compress webpages and js with compressors and gzip before uploading.
 - webpages based on local bootstrap.
-- MQTT-Homeassistant optimizations and more values.
   
-
