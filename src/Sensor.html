@@ -8,99 +8,170 @@ const char SensorHTML[] PROGMEM = R"=====(
 </head>
 <body>
 <Div class="log" id="log">
-	<div class="setting">
-		<p>Device Type</p>
-		<select class="console" id="SENS_TYPE">
-			<option>TCS34725</option>
-			<option>APDS9960</option>
-			<option>HC-SR04</option>
+
+    <div class="setting">
+        <p>Device Type</p>
+        <select class="console" id="TYPE" onclick="HideSettings();">
+            <option disabled>Farbsensoren</option>
+            <option>TCS34725</option>
+            <option>APDS9960</option>
+            <option disabled>Abstandssensoren und Radar</option>
+            <option>SR04_SR04T</option>
+            <option>VL53L0X</option>
+            <option disabled>Drucksensoren</option>
+            <option>SKU237545</option>
+            <option>HK1100C</option>
+            <option disabled>Gewichtssensoren</option>
+            <option>HX711</option>
+            <option disabled>Triggersensoren</option>
+            <option>TRIGGER</option>
+        </select>
+        <p class="break">Type of the color sensing device</p>
+    </div>
+    <HR/>
+
+	<Div id = "Color">	
+		<div class="setting">
+			<p>Integration Time</p>
+			<select class="console" id="INTEG">
+				<option>2.4</option>
+				<option>24</option>
+				<option>50</option>
+				<option>101</option>
+				<option>154</option>
+				<option>700</option>
+			</select>
+			<p class="break">(Milliseconds)</p>
+		</div>
+		<div class="setting">
+			<p>Gain Value</p>
+			<select class="console" id="GAIN">
+			<option>1</option>
+			<option>4</option>
+			<option>16</option>
+			<option>60</option>
+			</select>
+			<p class="break">Gain for detected Color</p>
+		</div>
+		<div class="setting">
+			<p>Light Enabled</p>
+			<select class="console" id="LIGHT">
+			<option>False</option>
+			<option>True</option>
+			</select>
+			<p class="break">Onboard Light enabled (only TCS34725)</p>
+		</div>
+	</Div>
+
+	<Div id = "Distance">
+		<div class="setting">
+			<p>Berechnung:</p>
+			<select class="console" id="CALC">
+			<option>Standard</option>
+			<option>Füllstandsliste</option>
+			</select>
+			<p class="break"></p>
+		</div>
+		<div class="setting"><p>Höhe</p>								<input class="console" id="HOHE"></input><p></p></div>
+		<div class="setting"><p>Messabstand</p>							<input class="console" id="ABST"></input><p></p></div>
+		<div class="setting"><p>Werteliste (L, 100%,90%,...,10%)</p>	<input class="console" id="LIST"></input><p></p></div>
+		<div class="setting"><p>Durchmesser oder Länge (cm) oben</p>	<input class="console" id="OBEN"></input><p></p></div>
+		<div class="setting"><p>Durchmesser oder Länge (cm) unten</p>	<input class="console" id="UNTEN"></input><p></p></div>
+	</Div>
+
+	<Div id = "Pressure">
+		<div class="setting">        <p>Masse der Flüssigkeit</p>       	<input class="console" id="LMASS"></input><p></p>    </div>
+		<div class="setting">        <p>Skalierungsfaktor</p>        		<input class="console" id="SCALE"></input><p></p>    </div>
+	</Div>
+
+	<Div id = "Trigger">
+		<div class="setting">        <p>Werteänderung</p>       			<input class="console" id="WCHG"></input><p></p>    </div>
+		<p>Flanke</p>
+		<select class="console" id="TRIGM">
+			<option>Steigend</option>
+			<option>Fallend</option>
 		</select>
-		<p class="break">Type of the color sensing device</p>
-	</div>
-	<div class="setting">
-		<p>Integration Time</p>
-		<select class="console" id="SENS_INTEG">
-			<option>2.4</option>
-			<option>24</option>
-			<option>50</option>
-			<option>101</option>
-			<option>154</option>
-			<option>700</option>
-		</select>
-		<p class="break">(Milliseconds)</p>
-	</div>
-	<div class="setting">
-		<p>Gain Value</p>
-		<select class="console" id="SENS_GAIN">
-		<option>1</option>
-		<option>4</option>
-		<option>16</option>
-		<option>60</option>
-		</select>
-		<p class="break">Gain for detected Color</p>
-	</div>
-	<div class="setting">
-		<p>Light Enabled</p>
-		<select class="console" id="SENS_LIGHT">
-		<option>False</option>
-		<option>True</option>
-		</select>
-		<p class="break">Onboard Light enabled (only TCS34725)</p>
-	</div>
-	<HR/>
-	<div class="setting">
-		<p>Berechnung:</p>
-		<select class="console" id="SENS_LIGHT">
-		<option>Standard</option>
-		<option>Füllstandsliste</option>
-		</select>
-		<p class="break"></p>
-	</div>
-	<div class="setting">
-		<p>Höhe</p>
-		<input class="console" id="FSL"></input>
-		<p></p>
-	</div>
-	<div class="setting">
-		<p>Messabstand</p>
-		<input class="console" id="MES"></input>
-		<p></p>
-	</div>
-	<div class="setting">
-		<p>Werteliste (L, 100%,90%,...,10%)</p>
-		<input class="console" id="HOH"></input>
-		<p></p>
-	</div>
-	<div class="setting">
-		<p>Durchmesser oder Länge (cm) oben</p>
-		<input class="console" id="DOB"></input>
-		<p></p>
-	</div>
-	<div class="setting">
-		<p>Durchmesser oder Länge (cm) unten</p>
-		<input class="console" id="DUN"></input>
-		<p></p>
-	</div>
-	<div class="setting">
-		<p></p>
-		<a class="Btn" href="#" onclick="fetch('/SETTINGS' + 
-			'?INTEG='  + document.getElementById('SENS_INTEG').value + 
-			'&GAIN='   + document.getElementById('SENS_GAIN').value +
-			'&LIGHT='  + document.getElementById('SENS_LIGHT').value +
-			'&TYPE='  + document.getElementById('SENS_TYPE').value
-			); alert ('Settings saved');">Speichern</a>
-		<p></p>
-	</div>
+		<p class="break">Flankentrigger</p>
+	</Div>
+
+    <div class="setting">        <p></p>        <a class="Btn" href="#" onclick="SaveSettings();">Speichern</a>     <p></p>
+    </div>
 </div>
 <Script type="text/javascript">
-	fetch('Sens.json', {})
-	.then(function(response) {return response.json();})
-	.then(function(json) {
-		document.getElementById('SENS_INTEG').value = json.INTEG;
-		document.getElementById('SENS_GAIN').value = json.GAIN;
-		document.getElementById('SENS_LIGHT').value = json.LIGHT;
-		document.getElementById('SENS_TYPE').value = json.TYPE;
-	});
+ 
+    function HideSettings () {
+        switch (document.getElementById('TYPE').value){
+            case "TCS34725" :
+                document.getElementById('LIGHT').style.display ="";
+                document.getElementById('Color').style.display ="";
+                document.getElementById('Distance').style.display ="none";
+                document.getElementById('Pressure').style.display ="none";
+                document.getElementById('Trigger').style.display ="none";
+                break;
+            case "APDS9960" :
+                document.getElementById('LIGHT').style.display ="none";
+                document.getElementById('Color').style.display ="";
+                document.getElementById('Distance').style.display ="none";
+                document.getElementById('Pressure').style.display ="none";
+                document.getElementById('Trigger').style.display ="none";
+                break;
+            case "SR04_SR04T"  :
+				document.getElementById('Color').style.display ="none";
+                document.getElementById('Distance').style.display ="";
+                document.getElementById('Pressure').style.display ="none";
+                document.getElementById('Trigger').style.display ="none";
+                break;
+            case "VL53L0X"  :
+				document.getElementById('Color').style.display ="none";
+                document.getElementById('Distance').style.display ="";
+                document.getElementById('Pressure').style.display ="none";
+                document.getElementById('Trigger').style.display ="none";
+                break;
+            case "SKU237545":
+				document.getElementById('Color').style.display ="none";
+                document.getElementById('Distance').style.display ="none";
+                document.getElementById('Pressure').style.display ="";
+                document.getElementById('Trigger').style.display ="none";
+				break;
+            case "HK1100C":
+				document.getElementById('Color').style.display ="none";
+                document.getElementById('Distance').style.display ="none";
+                document.getElementById('Pressure').style.display ="";
+                document.getElementById('Trigger').style.display ="none";
+				break;
+            case "TRIGGER":
+				document.getElementById('Color').style.display ="none";
+                document.getElementById('Distance').style.display ="none";
+                document.getElementById('Pressure').style.display ="none";
+                document.getElementById('Trigger').style.display ="";
+				break;
+        }
+    };
+ 
+    function SaveSettings (){
+        var elements = document.getElementsByClassName("console");
+        var names = '/SETTINGS?';
+        for(var i = 0; i < elements.length; i++) {
+            if (elements[i].parentNode.style.display == ""){
+                names += elements[i].id + "=" + elements[i].value + "&";
+            }
+        }
+        names = names.substring(0, names.length-1);
+		fetch(names, {})
+        .then(function(response) {alert("saved: " + response.ok);})
+    }
+ 
+    function LoadSettings(Name){
+        fetch(Name, {})
+        .then(function(response) {return response.json();})
+        .then(function(json) {for (var key in json) {
+			document.getElementById(key).value = json[key];
+		}})
+		.then(function () {HideSettings();})
+    };
+   
+    LoadSettings ("Sens.json");
+    
 </Script>
 </body>
 </html>

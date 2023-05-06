@@ -1,1 +1,1 @@
-Sekunden direkt zählen und einen Timer für Warten und Brennen verwenden. Status jede Sekunde publishen.
+SKU237545 / HK1100C Sensor einbauen

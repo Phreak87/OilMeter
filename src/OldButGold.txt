@@ -1,0 +1,59 @@
+
+// const char origArray[][7][60]= {
+//   // HASS-NODE                                             NAME                   STATE-TOPIC               UNIQUE-ID                 MEAS-Unit      DEV-CLA  STATE-CLASS
+//     {"homeassistant/sensor/oilmeter/color_r/config",      "Color_R",              "oilmeter/sensor/0/R",   "OilMeter_Sensor0_R",      "RGB",         "gas", "measurement"},
+//     {"homeassistant/sensor/oilmeter/color_g/config",      "Color_G",              "oilmeter/sensor/0/G",   "OilMeter_Sensor0_G",      "RGB",         "gas", "measurement"}, 
+//     {"homeassistant/sensor/oilmeter/color_b/config",      "Color_B",              "oilmeter/sensor/0/B",   "OilMeter_Sensor0_B",      "RGB",         "gas", "measurement"}, 
+//     {"homeassistant/sensor/oilmeter/color_l/config",      "Lux",                  "oilmeter/sensor/0/L",   "OilMeter_Sensor0_L",      "RGB",         "gas", "measurement"}, 
+//     {"homeassistant/sensor/oilmeter/LastBurnM/config",    "Letze Brenndauer",     "oilmeter/LastBurnM",    "OilMeter_LastBurnM",      "Sec",         "gas", "measurement"}, 
+//     {"homeassistant/sensor/oilmeter/LastWaitM/config",    "Letze Wartedauer",     "oilmeter/LastWaitM",    "OilMeter_LastWaitM",      "Sec",         "gas", "measurement"}, 
+//     {"homeassistant/sensor/oilmeter/LastBurnL/config",    "Letze Brennmenge",     "oilmeter/LastBurnL",    "OilMeter_LastBurnL",      "L",           "gas", "measurement"}, 
+//     {"homeassistant/sensor/oilmeter/LastGenkW/config",    "Letze Generierung",    "oilmeter/LastGenkW",    "OilMeter_LastGenkW",      "kWh",         "gas", "measurement"}, 
+//     {"homeassistant/sensor/oilmeter/GesBurnM/config",     "Gesamte Brenndauer",   "oilmeter/GesBurnM",     "OilMeter_GesBurnM",       "Min",         "gas", "total_increasing"}, 
+//     {"homeassistant/sensor/oilmeter/GesWaitM/config",     "Gesamte Wartedauer",   "oilmeter/GesWaitM",     "OilMeter_GesWaitM",       "Min",         "gas", "total_increasing"}, 
+//     {"homeassistant/sensor/oilmeter/GesBurnL/config",     "Gesamte Brennmenge",   "oilmeter/GesBurnL",     "OilMeter_GesBurnL",       "L",           "gas", "total_increasing"}, 
+//     {"homeassistant/sensor/oilmeter/GesGenkW/config",     "Gesamte Generierung",  "oilmeter/GesGenkW",     "OilMeter_GesGenkW",       "kWh",         "gas", "total_increasing"}, 
+//     {"homeassistant/sensor/oilmeter/ActTankL/config",     "Tankinhalt_Aktuell",   "oilmeter/ActTankL",     "OilMeter_ActTankL",       "L",           "gas", "total_increasing"}, 
+//     {"homeassistant/sensor/oilmeter/MaxTankL/config",     "Tankinhalt_Maximal",   "oilmeter/MaxTankL",     "OilMeter_MaxTankL",       "kWh",         "gas", "measurement"},
+//     {"homeassistant/sensor/oilmeter/LastBurnStat/config", "Letzer Brennerstatus", "oilmeter/LastBurnStat", "OilMeter_LastBurnStat",    "",           "gas", "measurement"} 
+// };
+// void PublishHASS (){
+//   if (Force60S      == false) {                                                return;};
+//   if (LastBurnStat  == 3) {   Serial.println ("No publish while Burning");     return;};
+//   if (MQTTSETT.HASS == false){Serial.println ("HASS disabled");                return;};
+//   if (MqttReady     == false){Serial.println ("MQTT not ready");               return;};
+
+//   // mqttClient.publish("homeassistant/sensor/oilmeter/color_l/config",0,true, "{\"name\": \"Consumption\",\"stat_t\":\"oilmeter/Consumption_l\",  \"uniq_id\": \"oilmeter_Consumption_l\",  \"unit_of_meas\": \"L\",  \"dev\": {    \"name\": \"oilmeter\",   \"ids\": \"oilmeter_1\",    \"cu\": \"http://192.168.7.107\",\"mf\": \"oilmeter\",    \"mdl\": \"tcs34725\",    \"sw\": \"v001\"  },  \"exp_aft\": 15,  \"dev_cla\": \"water\",  \"stat_cla\": \"measurement\"}");
+//   // https://www.home-assistant.io/integrations/mqtt/
+
+//       Serial.println ("(re-)publishing HASS-Topics");
+//       int size = sizeof (origArray) / sizeof (origArray[0]);
+//       String URL = "http://" + WiFi.localIP().toString();
+
+//       for (int i = 0; i < size; i++){
+//         // lt. Dokumentation besser das Dokument neu zu erstellen anstatt zu ändern
+//         // weil die alten Werte im Heap bestehen bleiben und Speicher fressen.
+//         DynamicJsonDocument HASSETT(512);
+
+//         HASSETT["dev"]["name"]   =  MQTTSETT.TOPC;
+//         HASSETT["dev"]["ids"]    =  MQTTSETT.TOPC;
+//         HASSETT["dev"]["cu"]     =  URL; // IP
+//         HASSETT["dev"]["mf"]     = "Phreak87";
+//         HASSETT["dev"]["mdl"]    = "ESP8266+TCS34725/APDS9960";
+//         HASSETT["dev"]["sw"]     = "V 1.0";
+//         HASSETT["name"]          = origArray[i][1];
+//         HASSETT["stat_t"]        = origArray[i][2];
+//         HASSETT["uniq_id"]       = origArray[i][3];
+//         HASSETT["unit_of_meas"]  = origArray[i][4];
+//         HASSETT["exp_aft"]       = 30;
+//         HASSETT["dev_cla"]       = origArray[i][5];
+//         HASSETT["stat_cla"]      = origArray[i][6];
+
+//         char json_string[512];
+//         serializeJson (HASSETT,json_string);
+//         mqttClient.publish (origArray[i][0],0,true,json_string);
+//       }
+
+//       // mqttClient.loop ();
+//       ESP.wdtFeed();
+// }
