@@ -41,6 +41,7 @@ really used vs. whats refilled via the adaption factor in the webinterface.
 ## Pictures
 
 ![Installation](Pictures/Installation.jpg)
+![Rainwater](Pictures/RainWater.jpeg)
 ![3D Model](Pictures/Adapter_Plate.png)
 ![Webinterface](Pictures/Webinterface.png)
 ![Homeassistant](Pictures/HassIO.png)
