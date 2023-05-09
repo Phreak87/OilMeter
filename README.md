@@ -47,15 +47,15 @@ really used vs. whats refilled via the adaption factor in the webinterface.
 
 # Connection diagram (3.3 or 5V based on your Sensor)
 
-| ESP   | GYP | TCS | HC/JSN |
-| ----- | --- | --- | ---- |
-| 3V3/5V| VCC | VIN | VCC  |
-| GND   | GND | GND | GND  |
-| D6    | INT | LED | ---- |
-| D2    | SDA | SDA | ---- |
-| D1    | SCL | SCL | ---- |
-| D7    |     |     | TRIG |
-| D8    |     |     | ECHO |
+| ESP   | GYP | TCS | HC/JSN | VL52 |
+| ----- | --- | --- | ---- | ------ |
+| 3V3/5V| VCC | VIN | VCC  | VIN |
+| GND   | GND | GND | GND  | GND |
+| D6    | INT | LED | ---- | --- |
+| D2    | SDA | SDA | ---- | SDA |
+| D1    | SCL | SCL | ---- | SCL |
+| D7    |     |     | TRIG | --- |
+| D8    |     |     | ECHO | --- |
 
 #Todo
 
