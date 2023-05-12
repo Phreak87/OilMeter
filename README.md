@@ -4,7 +4,7 @@ Measure fluid consumption and levels on a ESP8266 via different Sensors:
 - TCS34725 or APDS9960 color sensor (Consumption via status-LED and Time)
 - HC-SR04/JSN-SR04T distance-sensor (just leveling).
 - VL53L0X Laser Distance            (just leveling, not use for clear Water or add a swimmer)
-- Trigger Sensor                    (Trigger Sensors like IR, Button, Motion detector, proximity switch (time based consumption)
+- Trigger Sensor                    (Trigger Sensors like IR, Button, Motion detector, sound or proximity switch (time based consumption)
 
 ## Oilmeter comes with the following features included:
 - First start as AccessPoint (OilMeter, PWD: OilMeter), after saving Wifi-Settings it will connect to default Wifi.
@@ -70,4 +70,4 @@ Rectangular:  (h * w) / 2
 - Include HK1100C Pressure Sensor
 - Include HX711 weight Sensor
 - Include Liter per Percent heigth measurements.
-- 
+- Include Trigger option for consumption per trigger instead of time.
