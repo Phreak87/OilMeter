@@ -17,6 +17,29 @@ option {
 font-size: 110% !important
 }
 
+  table {
+	border-radius: 10px;    
+	margin: 0 -12;
+	width: 100%;
+  }
+  
+  table td, table th {
+	padding: 8px;
+	width: 25%;
+  }
+  
+  table tr:nth-child(even)	{background-color: #68a4cc;}
+  table tr:hover 			{background-color: #ddd;}
+  
+  table th {
+	padding-top: 12px;
+	padding-bottom: 12px;
+	text-align: left;
+	opacity: 0.8;
+	background: linear-gradient(#777, #666);
+	color: white;
+  }
+
 progress[value] {
 	align-self: center;
 	opacity: .7;
@@ -126,7 +149,7 @@ input:hover,  input:active,
 display: grid;
 grid-column-gap: 10px;
 }
-.setting {
+.setting, .setting2 {
 	display: grid;
 	grid-column-gap: 10px;
 	grid-template-columns: 2fr 4fr 4fr;
@@ -145,6 +168,11 @@ overflow: hidden;
 color: white;
 align-self: center;
 }
+.setting2 p {
+overflow: hidden;
+color: white;
+align-self: center;
+}
 .setting select {
 color: white;
 align-self: center;
@@ -154,12 +182,24 @@ align-self: center;
 grid-template-columns: 2fr 4fr 4fr;
 height: 60px;
 }
+.setting2 {
+	grid-template-columns: 2fr 6fr 4fr;
+}
+::-webkit-scrollbar {width: 2em;height: 2em;}
+::-webkit-scrollbar-button {height: 0em;}
+::-webkit-scrollbar-track-piece {background: #999;}
+::-webkit-scrollbar-thumb {background: #ddd;}
 }
 @media (max-width:800px) {
 .setting {
 grid-template-columns: 2fr 4fr 0fr;
 height: 55px;
 }
+.setting2 {
+	grid-template-columns: 0fr 6fr 0fr;
+}
+::-webkit-scrollbar {width: 0em;height: 0em;}
+
 .break {
 grid-column-start: 1;
 grid-column-end: 6;
@@ -207,18 +247,6 @@ grid-column-end: 2;
 -ms-grid-column-span: 2
 }
 
-::-webkit-scrollbar {
-width: 2em;
-height: 2em;
-}
-::-webkit-scrollbar-button {
-height: 0em;
-}
-::-webkit-scrollbar-track-piece {
-background: #999;
-}
-::-webkit-scrollbar-thumb {
-background: #ddd;
-}
+
 
 )=====";

@@ -10,26 +10,42 @@ const char DefaultHTML[] PROGMEM = R"=====(
 <Div class="log" id="log">
 	<div id="BurnStat" class="setting">		<p>Status (Brenner):</p>	<p class="animated-background" ID="LastBurnStat">Aus</p>		<p>Aktueller Brennerzustand</p></div>
 	<div class="setting">					<p>Sensor Type:</p>			<p class="animated-background" ID="SensType">.</p>				<p>Typ des Sensors</p></div>
-	<div class="setting">					<p>Sensor Status:</p>		<p class="animated-background" ID="LastSens">.</p>		<p>RGB-Farbcode/Abstand cm/V/A</p></div>
+	<div class="setting">					<p>Sensor Status:</p>		<p class="animated-background" ID="LastSens">.</p>				<p>RGB-Farbcode/Abstand cm/V/A</p></div>
 	<div id="LEDOnOff" class="setting">		<p>Beleuchtung:</p>			<a class="Btn" href="#" onclick="fetch('/LightSwitch');">Licht umschalten</a>	<p></p></div>
 	<HR>
-	<div id="LastValues">
-		<div class="setting"><p>letzte Brenndauer:</p>					<p class="animated-background" id="LastBurnM">.</p>				<p>Sekunden</p></div>
-		<div class="setting"><p>letzte Wartedauer:</p>					<p class="animated-background" id="LastWaitM">.</p>				<p>Sekunden</p></div>
-		<div class="setting"><p>letzter Verbrauch:</p>					<p class="animated-background" id="LastBurnL">.</p>				<p>Liter</p></div>
-		<div class="setting"><p>letzte Generierung:</p>					<p class="animated-background" id="LastGenkW">.</p>				<p>kW Heizenergie</p></div>
-		<HR>
-	</div>
-	
-	<div id="GesValues">
-		<div class="setting"><p>Gesamte Brenndauer:</p>					<p class="animated-background" id="GesBurnM">.</p>				<p>Minuten</p></div>
-		<div class="setting"><p>Gesamte Wartedauer:</p>					<p class="animated-background" id="GesWaitM">.</p>				<p>Minuten</p></div>
-		<div class="setting"><p>Gesamter Verbrauch:</p>					<p class="animated-background" id="GesBurnL">.</p>				<p>Liter</p></div>
-		<div class="setting"><p>Gesamte Generierung:</p>				<p class="animated-background" id="GesGenkW">.</p>				<p>kWh</p></div>
-		<HR>
-	</div>
 
-	<div class="setting"><p>Tankinhalt Prozent:</p>						<progress max="100" id="ActTankP">.</progress>					<p>%</p></div>
+	<div class="setting2" id="Values">
+	<p>Stats</p>
+	<table>
+		<tr>
+			<Th>Wert</Th>			<Th>Letzter</Th>			<Th>Tages</Th>		<th>Gesamt</th>
+		</tr>
+		<tr><TD>Brenndauer</TD>		
+			<TD><p class="animated-background" id="LastBurnM">0</p></TD>
+			<TD><p class="animated-background" id="DayBurnM">0</p></TD>
+			<TD><p class="animated-background" id="GesBurnM">0</p></TD>
+		</tr>
+		<tr><TD>Wartedauer</TD>		
+			<TD><p class="animated-background" id="LastWaitM">0</p></TD>
+			<TD><p class="animated-background" id="DayWaitM">0</p></TD>
+			<TD><p class="animated-background" id="GesWaitM">0</p></TD>
+		</tr>
+		<tr><TD>Verbrauch L</TD>		
+			<TD><p class="animated-background" id="LastBurnL">0</p></TD>
+			<TD><p class="animated-background" id="DayBurnL">0</p></TD>
+			<TD><p class="animated-background" id="GesBurnL">0</p></TD>
+		</tr>
+		<tr><TD>Verbrauch kW</TD>		
+			<TD><p class="animated-background" id="LastGenkW">0</p></TD>
+			<TD><p class="animated-background" id="DayGenkW">0</p></TD>
+			<TD><p class="animated-background" id="GesGenkW">0</p></TD>
+		</tr>
+	</table>
+	<p>Stats</p>
+	</div>
+	<HR/>
+
+	<div class="setting"><p>Tankinhalt Prozent:</p>						<progress max="100" value="0" id="ActTankP">.</progress>		<p>%</p></div>
 	<div class="setting"><p>Tankinhalt verbleibend:</p>					<p class="animated-background" id="ActTankL">.</p>				<p>Liter</p></div>
 	<div class="setting"><p>Tankinhalt maximal:</p>						<p class="animated-background" id="MaxTankL">.</p>				<p>Liter</p></div>
 	<HR>
@@ -41,14 +57,17 @@ const char DefaultHTML[] PROGMEM = R"=====(
 </div>
 
 <Script type="text/javascript">
+	var Sensor ="";
 	function HideInitial (Name, hidden){
 		document.getElementById(Name).style.display = (hidden) ? "none"  : "";
 	}
 	function setInitial (Name, Text){
+		if (Text === undefined || Text === null) {return};
 		document.getElementById(Name).innerText = Text;
 		document.getElementById(Name).classList.remove("animated-background");
 	}
 	function setNormal (Name, Text){
+		if (Text === undefined || Text === null) {return};
 		document.getElementById(Name).innerText = Text;
 		document.getElementById(Name).style.color = "lightgreen";
 		document.getElementById(Name).classList.remove("animated-update");
@@ -58,57 +77,6 @@ const char DefaultHTML[] PROGMEM = R"=====(
 	function setSignal(){
 		setNormal('LastSignal',new Date().toLocaleString('de-DE'));
 	}
-
-	if (!!window.EventSource) {
-	  var source = new EventSource('/events');
-
-	  source.addEventListener('open', 		  function(e) {console.log("Events Connected");}, false);
-	  source.addEventListener('error', 		  function(e) {if (e.target.readyState != EventSource.OPEN) {console.log("Events Disconnected");}}, false);
-	  source.addEventListener('LastBurnStat', function(e) {setSignal();setNormal('LastBurnStat',["Aus","Vorheizen","Gebläse","Brennen","Fehler"][parseInt(e.data)]);}, false);
-	  source.addEventListener('LastBurnM',    function(e) {setSignal();setNormal('LastBurnM',parseFloat(e.data).toFixed(2) + " Sec (" + S_to_M_S(parseFloat(e.data)) + ")") ;}, false);
-	  source.addEventListener('LastWaitM',    function(e) {setSignal();setNormal('LastWaitM',parseFloat(e.data).toFixed(2) + " Sec (" + S_to_M_S(parseFloat(e.data)) + ")") ;}, false);
-	  source.addEventListener('LastBurnL',    function(e) {setSignal();setNormal('LastBurnL',parseFloat(e.data).toFixed(4) + " L")  ;}, false);
-	  source.addEventListener('LastGenkW',    function(e) {setSignal();setNormal('LastGenkW',parseFloat(e.data).toFixed(4) + " kW") ;}, false);
-	  source.addEventListener('GesBurnM',     function(e) {setSignal();setNormal('GesBurnM',parseFloat(e.data).toFixed(2) + " Min") ;}, false);
-	  source.addEventListener('GesWaitM',     function(e) {setSignal();setNormal('GesWaitM',parseFloat(e.data).toFixed(2) + " Min") ;}, false);
-	  source.addEventListener('GesBurnL',     function(e) {setSignal();setNormal('GesBurnL',parseFloat(e.data).toFixed(4) + " L")   ;}, false);
-	  source.addEventListener('GesGenkW',     function(e) {setSignal();setNormal('GesGenkW',parseFloat(e.data).toFixed(4) + " kW")  ;}, false);
-	  source.addEventListener('ActTankL',     function(e) {
-		setSignal();setNormal('ActTankL',parseFloat(e.data).toFixed(4) + " L")   ;
-		document.getElementById("ActTankP").value = (parseFloat(document.getElementById("MaxTankL").innerHTML) / parseFloat(e.data)) * 100;
-	}, false);
-	  source.addEventListener('MaxTankL',     function(e) {
-		setSignal();setNormal('MaxTankL',parseFloat(e.data).toFixed(4) + " L")   ;
-		document.getElementById("ActTankP").value = (parseFloat(document.getElementById("MaxTankL").innerHTML) / parseFloat(e.data)) * 100;
-	}, false);
-
-	  source.addEventListener('LastSens', function(e) {
-        switch (Sensor){
-            case "TCS34725" :
-				setSignal();setNormal('LastSens', 'RGB(' + e.data + ')');
-				document.getElementById('LastSens').style.backgroundColor = e.data;
-                break;
-            case "APDS9960" :
-				setSignal();setNormal('LastSens','RGB(' + e.data + ')');
-				document.getElementById('LastSens').style.backgroundColor = e.data;
-                break;
-            case "SR04_SR04T": setSignal();setNormal('LastSens',e.data + ' cm');   break;
-            case "VL53L0X"   : setSignal();setNormal('LastSens',e.data + ' cm');   break;
-            case "SKU237545" : setSignal();setNormal('LastSens',e.data + ' hPa');  break;
-            case "HK1100C"   : setSignal();setNormal('LastSens',e.data + ' hPa');  break;
-            case "TRIGGER"   : setSignal();setNormal('LastSens',e.data + ' trig'); break;
-        }
-	  }, false);
-
-	  source.addEventListener('SystemStart', function(e) {setSignal();setNormal('SystemStart',e.data);}, false);
-	  source.addEventListener('ESPHeap', 	 function(e) {setSignal();setNormal('ESPHeap',e.data);}, 	 false);
-	  source.addEventListener('LastReset', 	 function(e) {setSignal();setNormal('LastReset',e.data);}, 	 false);
-	}
-</Script>
-
-<Script type="text/javascript">
-	var Sensor ="";
-
 	function S_to_M_S(Seconds) {
 		hour = Math.floor(Seconds / 3600);			if ( hour < 10 ) {hour = "0" + hour;};
 		minute = Math.floor((Seconds%3600) / 60);	if ( minute < 10 ) {minute = "0"+minute;};
@@ -116,76 +84,103 @@ const char DefaultHTML[] PROGMEM = R"=====(
 		return hour + ":" + minute + ":" + second;
 	}
 
-	fetch('Usage.json', {})
-	.then(function(response) {return response.json();})
-	.then(function(json) {
-		setInitial('LastBurnM',parseFloat(json.LastBurnM).toFixed(2) + " Sec (" + S_to_M_S(parseFloat(json.LastBurnM)) + ")");
-		setInitial('LastWaitM',parseFloat(json.LastWaitM).toFixed(2) + " Sec (" + S_to_M_S(parseFloat(json.LastWaitM)) + ")");
-		setInitial('LastBurnL',parseFloat(json.LastBurnL).toFixed(4) + " L");
-		setInitial('LastGenkW',parseFloat(json.LastGenkW).toFixed(4) + " kW");
-		setInitial('GesBurnM',parseFloat(json.GesBurnM).toFixed(2)  + " Min");
-		setInitial('GesWaitM',parseFloat(json.GesWaitM).toFixed(2)  + " Min");
-		setInitial('GesBurnL',parseFloat(json.GesBurnL).toFixed(4)  + " L");
-		setInitial('GesGenkW',parseFloat(json.GesGenkW).toFixed(4)  + " kW");
-		setInitial('ActTankL',parseFloat(json.ActTankL).toFixed(4)  + " L");
-	});
-	
-	fetch('Burn.json', {})
-	.then(function(response) {return response.json();})
-	.then(function(json) {
-		setInitial('MaxTankL',json.MAX);
-	});
+fetch('Usage.json', {})
+.then(function(response) {return response.json();})
+.then(function(json) {
+	setInitial('LastBurnM',parseFloat(json.LastBurnM).toFixed(2) + " Sec (" + S_to_M_S(parseFloat(json.LastBurnM)) + ")");
+	setInitial('LastWaitM',parseFloat(json.LastWaitM).toFixed(2) + " Sec (" + S_to_M_S(parseFloat(json.LastWaitM)) + ")");
+	setInitial('LastBurnL',parseFloat(json.LastBurnL).toFixed(4) + " L");
+	setInitial('LastGenkW',parseFloat(json.LastGenkW).toFixed(4) + " kW");
 
-	fetch('Sens.json', {})
-	.then(function(response) {return response.json();})
-	.then(function(json) {
-		setInitial('SensType',json.TYPE); 
-		Sensor = json.TYPE;
-        switch (Sensor){
-            case "TCS34725" :
-				HideInitial('LastValues', false);
-                HideInitial('GesValues', false);
-                HideInitial('BurnStat', false);
-                HideInitial('LEDOnOff', false);
-                break;
-            case "APDS9960" :
-				HideInitial('LastValues', false);
-                HideInitial('GesValues', false);
-                HideInitial('BurnStat', false);
-                HideInitial('LEDOnOff', true);
-                break;
-            case "SR04_SR04T"  :
-				HideInitial('LastValues', true);
-                HideInitial('GesValues', true);
-                HideInitial('BurnStat', true);
-                HideInitial('LEDOnOff', true);
-                break;
-            case "VL53L0X"  :
-				HideInitial('LastValues', true);
-                HideInitial('GesValues', true);
-                HideInitial('BurnStat', true);
-                HideInitial('LEDOnOff', true);
-                break;
-            case "SKU237545":
-				HideInitial('LastValues', true);
-                HideInitial('GesValues', true);
-                HideInitial('BurnStat', true);
-                HideInitial('LEDOnOff', true);
-				break;
-            case "HK1100C":
-				HideInitial('LastValues', true);
-                HideInitial('GesValues', true);
-                HideInitial('BurnStat', true);
-                HideInitial('LEDOnOff', true);
-				break;
-            case "TRIGGER":
-				HideInitial('LastValues', true);
-                HideInitial('GesValues', true);
-                HideInitial('BurnStat', true);
-                HideInitial('LEDOnOff', true);
-				break;
-        }
-    });
+	setInitial('DayBurnM',parseFloat(json.DayBurnM).toFixed(2) + " Sec (" + S_to_M_S(parseFloat(json.DayBurnM)) + ")");
+	setInitial('DayWaitM',parseFloat(json.DayWaitM).toFixed(2) + " Sec (" + S_to_M_S(parseFloat(json.DayWaitM)) + ")");
+	setInitial('DayBurnL',parseFloat(json.DayBurnL).toFixed(4) + " L");
+	setInitial('DayGenkW',parseFloat(json.DayGenkW).toFixed(4) + " kW");
+
+	setInitial('GesBurnM',parseFloat(json.GesBurnM).toFixed(2) + " Min");
+	setInitial('GesWaitM',parseFloat(json.GesWaitM).toFixed(2) + " Min");
+	setInitial('GesBurnL',parseFloat(json.GesBurnL).toFixed(4)  + " L");
+	setInitial('GesGenkW',parseFloat(json.GesGenkW).toFixed(4)  + " kW");
+
+	setInitial('ActTankL',parseFloat(json.ActTankL).toFixed(4)  + " L");
+	document.getElementById("ActTankP").value = parseFloat(json.ActTankL) / parseFloat(document.getElementById("MaxTankL").innerHTML) * 100;
+});
+
+fetch('Burn.json', {})
+.then(function(response) {return response.json();})
+.then(function(json) {
+	setInitial('MaxTankL',json.MAX);
+	document.getElementById("ActTankP").value = (parseFloat(document.getElementById("ActTankL").innerHTML) / parseFloat(json.MAX)) * 100;
+});
+
+fetch('Sens.json', {})
+.then(function(response) {return response.json();})
+.then(function(json) {
+	setInitial('SensType',json.TYPE); 
+	Sensor = json.TYPE;
+	switch (Sensor){
+		case "TCS34725" : 	HideInitial('Values', false);	HideInitial('BurnStat', false);	HideInitial('LEDOnOff', false);	break;
+		case "APDS9960" :	HideInitial('Values', false );	HideInitial('BurnStat', false);	HideInitial('LEDOnOff', true);	break;
+		case "TRIGGER":		HideInitial('Values', false);	HideInitial('BurnStat', false);	HideInitial('LEDOnOff', true);	break;
+		case "SR04_SR04T":	HideInitial('Values', true);	HideInitial('BurnStat', true);	HideInitial('LEDOnOff', true);	break;
+		case "VL53L0X":		HideInitial('Values', true);	HideInitial('BurnStat', true);	HideInitial('LEDOnOff', true);	break;
+		case "SKU237545":	HideInitial('Values', true);	HideInitial('BurnStat', true);	HideInitial('LEDOnOff', true);	break;
+		case "HK1100C":		HideInitial('Values', true);	HideInitial('BurnStat', true);	HideInitial('LEDOnOff', true);	break;
+	}
+});
+
+if (!!window.EventSource) {
+	var source = new EventSource('/events');
+
+	source.addEventListener('open', 		function(e) {console.log("Events Connected");}, false);
+	source.addEventListener('error', 		function(e) {if (e.target.readyState != EventSource.OPEN) {console.log("Events Disconnected");}}, false);
+	source.addEventListener('LastBurnStat', function(e) {setSignal();setNormal('LastBurnStat',["Aus","Vorheizen","Gebläse","Brennen","Fehler"][parseInt(e.data)]);}, false);
+
+	source.addEventListener('LastBurnM',    function(e) {setSignal();setNormal('LastBurnM',parseFloat(e.data).toFixed(2) + " Sec (" + S_to_M_S(parseFloat(e.data)) + ")") ;}, false);
+	source.addEventListener('LastWaitM',    function(e) {setSignal();setNormal('LastWaitM',parseFloat(e.data).toFixed(2) + " Sec (" + S_to_M_S(parseFloat(e.data)) + ")") ;}, false);
+	source.addEventListener('LastBurnL',    function(e) {setSignal();setNormal('LastBurnL',parseFloat(e.data).toFixed(4) + " L")  ;}, false);
+	source.addEventListener('LastGenkW',    function(e) {setSignal();setNormal('LastGenkW',parseFloat(e.data).toFixed(4) + " kW") ;}, false);
+	
+	source.addEventListener('DayBurnM',     function(e) {setSignal();setNormal('DayBurnM',parseFloat(e.data).toFixed(2) + " Sec (" + S_to_M_S(parseFloat(e.data)) + ")") ;}, false);
+	source.addEventListener('DayWaitM',     function(e) {setSignal();setNormal('DayWaitM',parseFloat(e.data).toFixed(2) + " Sec (" + S_to_M_S(parseFloat(e.data)) + ")") ;}, false);
+	source.addEventListener('DayBurnL',     function(e) {setSignal();setNormal('DayBurnL',parseFloat(e.data).toFixed(4) + " L")  ;}, false);
+	source.addEventListener('DayGenkW',     function(e) {setSignal();setNormal('DayGenkW',parseFloat(e.data).toFixed(4) + " kW") ;}, false);
+
+	source.addEventListener('GesBurnM',     function(e) {setSignal();setNormal('GesBurnM',(parseFloat(e.data) / 60).toFixed(2) + " Min");}, false);
+	source.addEventListener('GesWaitM',     function(e) {setSignal();setNormal('GesWaitM',(parseFloat(e.data) / 60).toFixed(2)  + " Min") ;}, false);
+	source.addEventListener('GesBurnL',     function(e) {setSignal();setNormal('GesBurnL',parseFloat(e.data).toFixed(4) + " L")   ;}, false);
+	source.addEventListener('GesGenkW',     function(e) {setSignal();setNormal('GesGenkW',parseFloat(e.data).toFixed(4) + " kW")  ;}, false);
+
+	source.addEventListener('ActTankL',     function(e) {
+	setSignal();setNormal('ActTankL',parseFloat(e.data).toFixed(4) + " L")   ;
+	document.getElementById("ActTankP").value = (parseFloat(document.getElementById("MaxTankL").innerHTML) / parseFloat(e.data)) * 100;
+}, false);
+	source.addEventListener('MaxTankL',     function(e) {
+	setSignal();setNormal('MaxTankL',parseFloat(e.data).toFixed(4) + " L")   ;
+	document.getElementById("ActTankP").value = (parseFloat(document.getElementById("MaxTankL").innerHTML) / parseFloat(e.data)) * 100;
+}, false);
+
+	source.addEventListener('LastSens',     function(e) {
+	switch (Sensor){
+		case "TCS34725" :setNormal('LastSens', 'RGB(' + e.data + ')');
+			document.getElementById('LastSens').style.backgroundColor = 'RGB(' + e.data + ')';
+			break;
+		case "APDS9960" :setNormal('LastSens','RGB(' + e.data + ')');
+			document.getElementById('LastSens').style.backgroundColor = 'RGB(' + e.data + ')';
+			break;
+		case "SR04_SR04T": setNormal('LastSens',e.data + ' cm');   break;
+		case "VL53L0X"   : setNormal('LastSens',e.data + ' cm');   break;
+		case "SKU237545" : setNormal('LastSens',e.data + ' hPa');  break;
+		case "HK1100C"   : setNormal('LastSens',e.data + ' hPa');  break;
+		case "TRIGGER"   : setNormal('LastSens',e.data + ' trig'); break;
+	}; 
+	setSignal();
+	}, false);
+
+	source.addEventListener('SystemStart', function(e) {setSignal();setNormal('SystemStart',e.data);}, false);
+	source.addEventListener('ESPHeap', 	 function(e) {setSignal();setNormal('ESPHeap',e.data);}, 	 false);
+	source.addEventListener('LastReset', 	 function(e) {setSignal();setNormal('LastReset',e.data);}, 	 false);
+}
 
 </Script>
 
