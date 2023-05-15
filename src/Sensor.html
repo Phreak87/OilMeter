@@ -85,13 +85,15 @@ const char SensorHTML[] PROGMEM = R"=====(
 	</Div>
 
 	<Div id = "Trigger">
-		<div class="setting">        <p>Werteänderung</p>       			<input class="console" id="WCHG"></input><p></p>    </div>
-		<p>Flanke</p>
-		<select class="console" id="TRIGM">
-			<option>Steigend</option>
-			<option>Fallend</option>
-		</select>
-		<p class="break">Flankentrigger</p>
+		<div class="setting">
+            <p>Änderung bei</p>
+            <select class="console" id="TRIGM">
+                <option>An</option>
+                <option>Aus</option>
+                <option>Zeit</option>
+            </select>
+            <p class="break">Verbrauchsänderung anhand Faktor</p>
+        </div>
 	</Div>
 
     <div class="setting">        <p></p>        <a class="Btn" href="#" onclick="SaveSettings();">Speichern</a>     <p></p>
@@ -165,7 +167,11 @@ const char SensorHTML[] PROGMEM = R"=====(
         fetch(Name, {})
         .then(function(response) {return response.json();})
         .then(function(json) {for (var key in json) {
-			document.getElementById(key).value = json[key];
+            try {
+			    document.getElementById(key).value = json[key];
+            } catch (e) {
+                console.log ("Error on setting key" + key + ", " + e);
+            }
 		}})
 		.then(function () {HideSettings();})
     };

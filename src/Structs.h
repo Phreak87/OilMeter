@@ -24,7 +24,7 @@ const char HASSDistance[][7][32]= {
   // HASS-NODE              NAME                    STATE-TOPIC             UNIQUE-ID         EAS-Unit        DEV-CLA  STATE-CLASS
     {"Dist/config",         "Distanz",              "LastSens",             "Sensor0_D",      "cm",          "water", "measurement"},
     {"ActTankL/config",     "Tankinhalt_Aktuell",   "ActTankL",             "ActTankL",       "L",           "water", "measurement"}, 
-    {"MaxTankL/config",     "Tankinhalt_Maximal",   "MaxTankL",             "MaxTankL",       "kWh",         "water", "measurement"}
+    {"MaxTankL/config",     "Tankinhalt_Maximal",   "MaxTankL",             "MaxTankL",       "L",           "water", "measurement"}
 };
 
 bool LoadFile (const char* Filename, DynamicJsonDocument &Json){
@@ -94,6 +94,7 @@ struct BURNStruct {
     // Serial.print   (ERROR_R); // Letzte eingelesene Werte Debuggen
     // Serial.print   (ERROR_G); // Letzte eingelesene Werte Debuggen
     // Serial.println (ERROR_B); // Letzte eingelesene Werte Debuggen
+    Serial.println ("File loading success: Burn.json");
     return true;
   }
   bool Save (){
@@ -164,6 +165,7 @@ struct USAGEStruct {
     GesBurnM  = JSON_DOC["GesBurnM"].as<double>();
     GesGenkW  = JSON_DOC["GesGenkW"].as<double>();
     ActTankL  = JSON_DOC["ActTankL"].as<double>();
+    Serial.println ("File loading success: Usage.json");
     return true;
   }
   bool Save (){
@@ -203,6 +205,7 @@ struct WIFIStruct {
     if(LoadedUsage == false){Save();};
     SSID = JSON_DOC["SSID"];
     PASS = JSON_DOC["PASS"];
+    Serial.println ("File loading success: Wifi.json");
     return true;
   }
   bool Save (){
@@ -219,10 +222,13 @@ struct WIFIStruct {
   }
 };
 struct SENSStruct {
-  char        TYPE[32] = "TCS34725"; // oder APDS9960
-  char        LIGHT[8] = "False"; 
-  int         GAIN     =  4; 
-  int         INTEG    = 50;
+  char        TYPE[32] = "TCS34725"; // TCS34725, APDS9960, TRIGGER, SR04_SR04T, VL53L0X
+  char        LIGHT[8] = "False";    // NUR TCS34725
+  char        TRIGM[8] = "Zeit";     // Zeit = Berechnung nach Zeit
+                                     // An = Fixabzug (L/H) bei Consumption wechsel auf true
+                                     // Aus = Fixabzug (L/H) bei Consumption wechsel auf false
+  int         GAIN     =  4;         // NUR TCS34725, APDS9960
+  int         INTEG    = 50;         // NUR TCS34725, APDS9960
 
   bool Load () {
     DynamicJsonDocument JSON_DOC(128);
@@ -230,8 +236,10 @@ struct SENSStruct {
     if(Loaded == false){Save();};
     strcpy( TYPE, JSON_DOC["TYPE"]);  
     strcpy( LIGHT, JSON_DOC["LIGHT"]);  
+    if (JSON_DOC["TRIGM"].isNull()) {strcpy( TRIGM, "An");} else {strcpy( TRIGM, JSON_DOC["TRIGM"]);}; 
     GAIN = JSON_DOC["GAIN"];
     INTEG = JSON_DOC["INTEG"];
+    Serial.println ("File loading success: Sens.json");
     return true;
   }
   bool Save (){
@@ -240,6 +248,7 @@ struct SENSStruct {
     JSON_DOC["GAIN"]  = GAIN;
     JSON_DOC["INTEG"] = INTEG;
     JSON_DOC["LIGHT"] = LIGHT;
+    JSON_DOC["TRIGM"] = TRIGM;
     char json_string[128];
     serializeJson(JSON_DOC, json_string); 
     File dataFile = LittleFS.open("Sens.json", "w");
@@ -270,6 +279,7 @@ struct MQTTStruct {
     PORT = JSON_DOC["PORT"].as<int>(); 
     HASS = JSON_DOC["HASS"].as<boolean>();Serial.println(HASS);
     ENAB = JSON_DOC["ENAB"].as<boolean>();Serial.println(ENAB);
+    Serial.println ("File loading success: Mqtt.json");
     return true;
   }
   bool Save (){

@@ -58,6 +58,9 @@ const char DefaultHTML[] PROGMEM = R"=====(
 
 <Script type="text/javascript">
 	var Sensor ="";
+	var MaxL = 1;
+	var ActL = 1;
+
 	function HideInitial (Name, hidden){
 		document.getElementById(Name).style.display = (hidden) ? "none"  : "";
 	}
@@ -78,10 +81,11 @@ const char DefaultHTML[] PROGMEM = R"=====(
 		setNormal('LastSignal',new Date().toLocaleString('de-DE'));
 	}
 	function S_to_M_S(Seconds) {
+		days = Math.floor (Seconds / 86400);		
 		hour = Math.floor(Seconds / 3600);			if ( hour < 10 ) {hour = "0" + hour;};
 		minute = Math.floor((Seconds%3600) / 60);	if ( minute < 10 ) {minute = "0"+minute;};
 		second = Math.floor(Seconds%60);			if ( second < 10 ) {second = "0"+second;};
-		return hour + ":" + minute + ":" + second;
+		return (parseFloat(days) == 0 ? "" : days + "d, ") + hour + ":" + minute + ":" + second;
 	}
 
 fetch('Usage.json', {})
@@ -97,20 +101,21 @@ fetch('Usage.json', {})
 	setInitial('DayBurnL',parseFloat(json.DayBurnL).toFixed(4) + " L");
 	setInitial('DayGenkW',parseFloat(json.DayGenkW).toFixed(4) + " kW");
 
-	setInitial('GesBurnM',parseFloat(json.GesBurnM).toFixed(2) + " Min");
-	setInitial('GesWaitM',parseFloat(json.GesWaitM).toFixed(2) + " Min");
+	setInitial('GesBurnM',(parseFloat(json.GesBurnM) * 60).toFixed(2) + " Sec (" + S_to_M_S((parseFloat(json.GesBurnM) * 60).toFixed(2)) + ")");
+	setInitial('GesWaitM',(parseFloat(json.GesWaitM) * 60).toFixed(2) + " Sec (" + S_to_M_S((parseFloat(json.GesWaitM) * 60).toFixed(2)) + ")");
 	setInitial('GesBurnL',parseFloat(json.GesBurnL).toFixed(4)  + " L");
 	setInitial('GesGenkW',parseFloat(json.GesGenkW).toFixed(4)  + " kW");
 
-	setInitial('ActTankL',parseFloat(json.ActTankL).toFixed(4)  + " L");
-	document.getElementById("ActTankP").value = parseFloat(json.ActTankL) / parseFloat(document.getElementById("MaxTankL").innerHTML) * 100;
+	ActL = parseFloat(json.ActTankL).toFixed(4);
+	setInitial('ActTankL',parseFloat(ActL).toFixed(4)  + " L");
+	document.getElementById("ActTankP").value = parseFloat(ActL) / parseFloat(MaxL) * 100;
 });
 
 fetch('Burn.json', {})
 .then(function(response) {return response.json();})
 .then(function(json) {
-	setInitial('MaxTankL',json.MAX);
-	document.getElementById("ActTankP").value = (parseFloat(document.getElementById("ActTankL").innerHTML) / parseFloat(json.MAX)) * 100;
+	MaxL = json.MAX; setInitial('MaxTankL',MaxL);
+	document.getElementById("ActTankP").value = (parseFloat(ActL) / parseFloat(MaxL)) * 100;
 });
 
 fetch('Sens.json', {})
@@ -146,18 +151,21 @@ if (!!window.EventSource) {
 	source.addEventListener('DayBurnL',     function(e) {setSignal();setNormal('DayBurnL',parseFloat(e.data).toFixed(4) + " L")  ;}, false);
 	source.addEventListener('DayGenkW',     function(e) {setSignal();setNormal('DayGenkW',parseFloat(e.data).toFixed(4) + " kW") ;}, false);
 
-	source.addEventListener('GesBurnM',     function(e) {setSignal();setNormal('GesBurnM',(parseFloat(e.data) / 60).toFixed(2) + " Min");}, false);
-	source.addEventListener('GesWaitM',     function(e) {setSignal();setNormal('GesWaitM',(parseFloat(e.data) / 60).toFixed(2)  + " Min") ;}, false);
+	source.addEventListener('GesBurnM',     function(e) {setSignal();setNormal('GesBurnM',(parseFloat(e.data) * 60).toFixed(2) + " Sec (" + S_to_M_S(parseFloat(e.data)*60) + ")") ;}, false);
+	source.addEventListener('GesWaitM',     function(e) {setSignal();setNormal('GesWaitM',(parseFloat(e.data) * 60).toFixed(2)  + " Sec (" + S_to_M_S(parseFloat(e.data)*60) + ")") ;}, false);
 	source.addEventListener('GesBurnL',     function(e) {setSignal();setNormal('GesBurnL',parseFloat(e.data).toFixed(4) + " L")   ;}, false);
 	source.addEventListener('GesGenkW',     function(e) {setSignal();setNormal('GesGenkW',parseFloat(e.data).toFixed(4) + " kW")  ;}, false);
 
 	source.addEventListener('ActTankL',     function(e) {
+	ActL = parseFloat(e.data).toFixed(4);
 	setSignal();setNormal('ActTankL',parseFloat(e.data).toFixed(4) + " L")   ;
-	document.getElementById("ActTankP").value = (parseFloat(document.getElementById("MaxTankL").innerHTML) / parseFloat(e.data)) * 100;
-}, false);
+	document.getElementById("ActTankP").value = (parseFloat(ActL) / parseFloat(MaxL)) * 100;
+	}, false);
+
 	source.addEventListener('MaxTankL',     function(e) {
+	MaxL = parseFloat(e.data).toFixed(4);
 	setSignal();setNormal('MaxTankL',parseFloat(e.data).toFixed(4) + " L")   ;
-	document.getElementById("ActTankP").value = (parseFloat(document.getElementById("MaxTankL").innerHTML) / parseFloat(e.data)) * 100;
+	document.getElementById("ActTankP").value = (parseFloat(ActL) / parseFloat(MaxL)) * 100;
 }, false);
 
 	source.addEventListener('LastSens',     function(e) {

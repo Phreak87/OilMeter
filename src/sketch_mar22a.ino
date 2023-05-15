@@ -147,7 +147,9 @@ void setup(void) {
   // 5 -> wake up from deep-sleep
 
   InitLittleFS ();                        // Im LittleFS stehen die WLAN- und andere daten.
+
   numberOfNetworks = WiFi.scanNetworks(); // Bevor zu einem WLAN verbunden wird, sonst Absturz!
+  WiFi.setSleep (false);                  // Stabilere und schnellere Verbindungen. 
 
   bool LoadedWifi = WIFISETT.Load ();
   if(WifiRestore == true) {WIFISETT.SSID = WIFISSID; WIFISETT.PASS = WIFIPASS;};
@@ -257,6 +259,7 @@ void setup(void) {
         if (p -> name() == "GAIN") {SENSSETT.GAIN  = p-> value().toInt(); SensUpdated = true;}
         if (p -> name() == "LIGHT"){char BUF[8];     p-> value().toCharArray (BUF, 8);  strlcpy (SENSSETT.LIGHT, BUF,sizeof (BUF)); SensUpdated = true;}
         if (p -> name() == "TYPE") {char BUF[16];    p-> value().toCharArray (BUF, 16); strlcpy (SENSSETT.TYPE , BUF,sizeof (BUF)); SensUpdated = true;}
+        if (p -> name() == "TRIGM"){char BUF[8];     p-> value().toCharArray (BUF, 8);  strlcpy (SENSSETT.TRIGM, BUF,sizeof (BUF)); SensUpdated = true;}
         
         if (p -> name() == "HOST") {char BUF[16];    p-> value().toCharArray (BUF, 16); strlcpy (MQTTSETT.HOST , BUF,sizeof (BUF)); MqttUpdated = true;}
         if (p -> name() == "PASW") {char BUF[16];    p-> value().toCharArray (BUF, 16); strlcpy (MQTTSETT.PASW , BUF,sizeof (BUF)); MqttUpdated = true;}
@@ -373,10 +376,7 @@ Force2S  = false; if (millis() - Timer2s  >= 2000)  {Force2S  = true; Timer2s  =
 Force20S = false; if (millis() - Timer20s >= 25000) {Force20S = true; Timer20s = millis ();} // Consumption values
 Force60S = false; if (millis() - Timer60s >= 60000) {Force60S = true; Timer60s = millis ();} // Hass-Republish
  
-if (APMode == false &&     MQTTSETT.ENAB == true &&     Force60S == true &&     MqttReady == false){
-  // ulong Timer = millis(); while (millis() < 2000 + Timer ) {ESP.wdtFeed();} // hier kein delay (async)
-  mqttClient.connect();
-}
+if (APMode == false &&     MQTTSETT.ENAB == true &&     Force60S == true &&     MqttReady == false){mqttClient.connect();}
 
 bool HandledSensor = false;
 if (strcmp ("TCS34725",SENSSETT.TYPE)   == 0 || strcmp ("APDS9960",SENSSETT.TYPE) == 0){HandleOpticalSensors ();HandledSensor = true; }
@@ -597,24 +597,37 @@ bool HandleStates (bool ActState){
   // ActState = false = kein Verbrauch
   // ------------------------------------------
 
+  int CALC = 0;                                                 // Berechnungsvariante Zeit
+  if (strcmp ("An",SENSSETT.TRIGM)   == 0){CALC = 1;}           // Berechnungsvariante An (Von Aus nach An)
+  if (strcmp ("Aus",SENSSETT.TRIGM)   == 0){CALC = 2;}          // Berechnungsvariante Aus (Von An nach Aus)
+  // Serial.println (SENSSETT.TRIGM);
+  // Serial.println (CALC);
+
   // ------------------------------------------
-  // Nur berechnungen, keine ausgabe
+  // Nur berechnungen, keine Ausgabe
   // ------------------------------------------
-    if (ActState == true && LastState == false){                                                           // Wenn brennen startet
-      TimerBurnMs = millis();                                                                              // Start des Verbauchstimers
-      double TimeS = (double)(millis() - TimerWaitMs) / 1000;                                              // Wartezeit berechnen (Sekunden)
-      USAGE.LastWaitM = TimeS;                                                                             // letzte Wartezeit setzen
-      USAGE.DayWaitM += TimeS;                                                                             // gesamte Wartezeit pro Tag setzen
-      USAGE.GesWaitM += TimeS / 60;                                                                        // gesamte Wartezeit insgesamt setzen
+    if (ActState == true && LastState == false){                // Wenn brennen startet
+      TimerBurnMs = millis();                                   // Start des Verbauchstimers
+      double TimeS = (double)(millis() - TimerWaitMs) / 1000;   // Wartezeit berechnen (Sekunden)
+      USAGE.LastWaitM = TimeS;                                  // letzte Wartezeit setzen
+      USAGE.DayWaitM += TimeS;                                  // gesamte Wartezeit pro Tag setzen
+      USAGE.GesWaitM += TimeS / 60;                             // gesamte Wartezeit insgesamt setzen
+
+      if (CALC == 1){                                            // 1 = Bei Statuswechsel Aus -> An (Abzug bei Einschalten)
+        USAGE.ActTankL -= BURNSETT.L_H;
+        Serial.print ("Reduzierung (Aus -> An) um: "); 
+        Serial.println(BURNSETT.L_H);
+      }            
     }
 
     if (ActState == false && LastState == true){                                                           // Wenn brennen stoppt
       TimerWaitMs = millis();                                                                              // Brennabstand rückstellen
-
       double TimeS = (double)(millis() - TimerBurnMs) / 1000;                                              // Berechnen der Zeit im Zustand
-      double Verbr = TimeS  * (BURNSETT.L_H / 3600.0) * BURNSETT.COR;                                      // Berechnen des Verbrauchs in Liter
+      double Verbr = 0;                                                                                    // Berechnen des Verbrauchs in Liter anhand Fixwert (USAGE = 1)
+      if (CALC == 0){Verbr = TimeS  * (BURNSETT.L_H / 3600.0) * BURNSETT.COR;}                             // Berechnen des Verbrauchs in Liter anhand Zeit
+      if (CALC == 2){Verbr = BURNSETT.L_H;}                                                                // Berechnen des Verbrauchs in Liter anhand Fixwert
       double GenkW = Verbr * BURNSETT.LKW;                                                                 // Berechnen der generierung in kW
-
+      
       USAGE.LastBurnM = TimeS;                                                                             // Brennzeit merken und auf Sek. anpassen
       USAGE.LastBurnL = Verbr;                                                                             // Berechnen des Verbrauchs in Liter
       USAGE.LastGenkW = GenkW;                                                                             // Berechnen der generierung in kW
@@ -627,59 +640,59 @@ bool HandleStates (bool ActState){
       USAGE.GesBurnL += Verbr;                                                                             // Gesamtanzahl Liter ermitteln
       USAGE.GesGenkW += GenkW;                                                                             // Gesamtanzahl kW ermitteln
 
-      USAGE.ActTankL -= USAGE.LastBurnL;                                                                   // Tankinhalt reduzieren
+      if (CALC == 0 || CALC == 2){
+        USAGE.ActTankL -= USAGE.LastBurnL;                                                                   // Tankinhalt reduzieren
+        Serial.print ("Reduzierung (An -> Aus) um: "); 
+        Serial.println(BURNSETT.L_H);
+      }
     }
 
-  // ------------------------------------------
-  // Speichern und Ausgabe
-  // ------------------------------------------
-    if (ActState != LastState){                                                                            // Bei jeder Statusänderung
-      events.send(String(ActState).c_str(), "LastSens");                                                   // Aktuellen Status publishen
-      USAGE.Save();                                                                                        // Verbrauchswerte speichern
-    }
+    // --------------------------------------------------------------------
+    // Bei jeder Statusänderung Verbrauchswerte speichern
+    // --------------------------------------------------------------------
+    if (ActState != LastState){USAGE.Save();}                                             
 
-    if (ActState == true && ActState == LastState){                                                        // Während dem Verbrauchen  
-      double TimeS = (double)(millis() - TimerBurnMs) / 1000;                                              // Berechnen der Zeit im Zustand
-      double Verbr = TimeS  * (BURNSETT.L_H / 3600.0) * BURNSETT.COR;                                      // Berechnen des Verbrauchs in Liter
-      double GenkW = Verbr * BURNSETT.LKW;                                                                 // Berechnen der generierung in kW
-      events.send(String(                 TimeS,2).c_str(), "LastBurnM"); 
-      events.send(String(                 Verbr,4).c_str(), "LastBurnL"); 
-      events.send(String(                 GenkW,4).c_str(), "LastGenkW"); 
-      events.send(String(USAGE.DayBurnM + TimeS,2).c_str(), "DayBurnM"); 
-      events.send(String(USAGE.DayBurnL + Verbr,4).c_str(), "DayBurnL"); 
-      events.send(String(USAGE.DayGenkW + GenkW,4).c_str(), "DayGenkW"); 
-      events.send(String(USAGE.GesBurnM + TimeS,2).c_str(), "GesBurnM"); 
-      events.send(String(USAGE.GesBurnL + Verbr,4).c_str(), "GesBurnL"); 
-      events.send(String(USAGE.GesGenkW + GenkW,4).c_str(), "GesGenkW"); 
+    // --------------------------------------------------------------------
+    // Während dem Verbrauchen die aktuelle, die Tages und die Gesamtwerte.
+    // updaten und an webevents publishen. (Last, Day, Ges) + Time, Liter, kW
+    // Zeitmessung ausführen egal in welchem Zustand (Timer, Bei An, Bei Aus).
+    // --------------------------------------------------------------------
+    if (ActState == true && ActState == LastState){
+        double TimeS = (double)(millis() - TimerBurnMs) / 1000;                           // Berechnen der Zeit im Zustand
+        double Verbr = TimeS  * (BURNSETT.L_H / 3600.0) * BURNSETT.COR;                   // Berechnen des Verbrauchs in Liter
+        if (CALC == 1 || CALC == 2) {Verbr = BURNSETT.L_H;}                               // Nur wenn es Timer ist, sonst Rücksetzen
+        double GenkW = Verbr * BURNSETT.LKW;                                              // Berechnen der generierung in kW
+
+        events.send(String(USAGE.ActTankL        ,6).c_str(),         "ActTankL"); 
+        events.send(String(                 TimeS,2).c_str(),         "LastBurnM"); 
+        events.send(String(                 Verbr,4).c_str(),         "LastBurnL"); 
+        events.send(String(                 GenkW,4).c_str(),         "LastGenkW"); 
+        events.send(String(USAGE.DayBurnM + TimeS,2).c_str(),         "DayBurnM"); 
+        events.send(String(USAGE.DayBurnL + Verbr,4).c_str(),         "DayBurnL"); 
+        events.send(String(USAGE.DayGenkW + GenkW,4).c_str(),         "DayGenkW"); 
+        events.send(String(USAGE.GesBurnM + (TimeS / 60),2).c_str(),  "GesBurnM"); 
+        events.send(String(USAGE.GesBurnL + Verbr,4).c_str(),         "GesBurnL"); 
+        events.send(String(USAGE.GesGenkW + GenkW,4).c_str(),         "GesGenkW"); 
     }  
 
-    if (ActState == false && ActState == LastState){                                                        // Während dem Warten 
-      double TimeS = (double)(millis() - TimerWaitMs) / 1000;                                               // Wartezeit berechnen
-      events.send(String(TimeS).c_str(),                    "LastWaitM"); 
-      events.send(String(TimeS + USAGE.DayWaitM,4).c_str(), "DayWaitM"); 
-      events.send(String(TimeS + USAGE.GesWaitM,2).c_str(), "GesWaitM"); 
+    // --------------------------------------------------------------------
+    // Während dem Warten die aktuelle, die Tages und die Gesamtwerte
+    // updaten und an webevents publishen. Zeitmessung ausführen egal in 
+    // welchem Zustand (Timer, Bei An, Bei Aus) ausführen.
+    // --------------------------------------------------------------------
+    if (ActState == false && ActState == LastState){ 
+      double TimeS = (double)(millis() - TimerWaitMs) / 1000;     
+
+      events.send(String(USAGE.ActTankL        ,6).c_str(),         "ActTankL"); 
+      events.send(String(TimeS).c_str(),                            "LastWaitM"); 
+      events.send(String(TimeS + USAGE.DayWaitM,4).c_str(),         "DayWaitM"); 
+      events.send(String((TimeS / 60) + USAGE.GesWaitM,2).c_str(),  "GesWaitM"); 
     }  
 
-    // -----------------------------------------
-    // Erzwungenes Publishing (HASS)
-    // oder Statusänderung
-    // -----------------------------------------
+    // --------------------------------------------------------------------
+    // Erzwungenes Publishing (HASS) oder Statusänderung
+    // --------------------------------------------------------------------
     if (ActState != LastState || Force20S){                                                                 
-      
-      events.send(String(ActState).c_str(), "LastBurnStat");
-      events.send(String(USAGE.GesBurnM,6).c_str(), "GesBurnM"); 
-      events.send(String(USAGE.GesWaitM,6).c_str(), "GesWaitM"); 
-      events.send(String(USAGE.GesBurnL,6).c_str(), "GesBurnL"); 
-      events.send(String(USAGE.GesGenkW,6).c_str(), "GesGenkW");
-      events.send(String(USAGE.LastBurnM,6).c_str(), "LastBurnM"); 
-      events.send(String(USAGE.LastWaitM,6).c_str(), "LastWaitM"); 
-      events.send(String(USAGE.LastBurnL,6).c_str(), "LastBurnL"); 
-      events.send(String(USAGE.LastGenkW,6).c_str(), "LastGenkW"); 
-      events.send(String(USAGE.DayBurnM,6).c_str(), "DayBurnM"); 
-      events.send(String(USAGE.DayWaitM,6).c_str(), "DayWaitM"); 
-      events.send(String(USAGE.DayBurnL,6).c_str(), "DayBurnL"); 
-      events.send(String(USAGE.DayGenkW,6).c_str(), "DayGenkW"); 
-
       if (MqttReady == true){
         mqttClient.publish("oilmeter/LastBurnStat", 0, true, String(ActState).c_str());
         mqttClient.publish("oilmeter/LastBurnM", 0, true, String(USAGE.LastBurnM,6).c_str());
@@ -707,10 +720,14 @@ bool HandleStates (bool ActState){
 bool HandleTriggerSensor (){
   int S = digitalRead(D1); delay (50);
   int S2 = digitalRead(D1);
-  if (S != S2){S = LastBurnStat;}       // Unsicher bei Bounce, zurücksetzen auf letzten sicheren status
-  HandleStates (S == 0 ? true : false); // Bewerten des aktuellen Status und ausgeben an Web, MQTT, Serial
-  PublishHASS2(HASSColor);              // ziemlich gleich zum ColorSensor
-  delay (250); yield();                 // Wartezeit bei Triggersensoren
+  if (S != S2){S = LastBurnStat;}                   // Unsicher bei Bounce, zurücksetzen auf letzten sicheren Status
+  HandleStates (S == 0 ? true : false);             // Bewerten des aktuellen Status und ausgeben an Web, MQTT, Serial
+
+  events.send(String(S).c_str(), "LastSens");       // Aktuellen Status publishen
+  events.send(String(S).c_str(), "LastBurnStat");   // Aktuellen Status publishen
+
+  PublishHASS2(HASSColor);                          // ziemlich gleich zum ColorSensor
+  delay (250); yield();                             // Wartezeit bei Triggersensoren
   return true;
 }
 bool HandleOpticalSensors (){
@@ -751,16 +768,15 @@ bool HandleOpticalSensors (){
     }
 
     String RGB = String(R);RGB.concat(",");RGB.concat(G);RGB.concat(",");RGB.concat(B);
-    int S = BrennerStatus(R,G,B);
-    HandleStates(S == 3 ? 1 : 0);
+    int S = BrennerStatus(R,G,B); HandleStates(S == 3 ? 1 : 0);
 
     // ----------------------------------------------------------
-    // Bei Farbänderung oder alle 2 Sekunden Farbstatus senden
+    // Bei Farbänderung oder alle 2 spezifischen Status senden
     // ----------------------------------------------------------
     if (RGB != LastSensRGB || Force2S){
-      events.send(RGB.c_str(), "LastSens");  
-      events.send(String(S).c_str(), "LastBurnStat");  
-      if (MqttReady == true){
+      events.send(RGB.c_str(),        "LastSens");  
+      events.send(String(S).c_str(),  "LastBurnStat");
+      if (MqttReady == true){   
         mqttClient.publish("oilmeter/sensor/0/R", 0, true, String(R).c_str());
         mqttClient.publish("oilmeter/sensor/0/G", 0, true, String(G).c_str());
         mqttClient.publish("oilmeter/sensor/0/B", 0, true, String(B).c_str());
@@ -781,7 +797,6 @@ bool HandleOpticalSensors (){
       mqttClient.publish("oilmeter/sensor/0/R", 0, true, String(128).c_str());
       mqttClient.publish("oilmeter/sensor/0/G", 0, true, String(128).c_str());
       mqttClient.publish("oilmeter/sensor/0/B", 0, true, String(128).c_str());
-      events.send("128,128,128", "LastSens");
       events.send("Sensor Fehler!", "LastSens");
       Serial.println ("Sensor Fehler!");
     };
@@ -806,19 +821,19 @@ bool HandleDistanceSensors (){
     distance = duration * 0.034 / 2;
   } 
 
-  // Serial.println("Entfernung: " +         String(distance) + "cm");
-  // Serial.println ("Liter Verbleibend:" +  String(LiterfromDistance(distance)) + " L");
-
-  if (MqttReady == true){
-    char Topic[32]; 
-    sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "ActTankL");  mqttClient.publish(Topic, 0, true, String(LiterfromDistance(distance)).c_str());
-    sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "MaxTankL");  mqttClient.publish(Topic, 0, true, String(BURNSETT.MAX).c_str());
-    sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "LastSens");  mqttClient.publish(Topic, 0, true, String(distance).c_str());
-  }
-
-  events.send(String(LiterfromDistance(distance),6).c_str(), "ActTankL"); 
-  events.send(String(BURNSETT.MAX).c_str(), "MaxTankL"); 
-  events.send(String(distance).c_str(), "LastSens"); 
+    // ----------------------------------------------------------
+    // spezifischen Status senden
+    // ----------------------------------------------------------
+    events.send(String(LiterfromDistance(distance),6).c_str(), "ActTankL"); 
+    events.send(String(BURNSETT.MAX).c_str(), "MaxTankL"); 
+    events.send(String(distance).c_str(),     "LastSens");  
+    events.send(String("none").c_str(),       "LastBurnStat");
+    if (MqttReady == true){
+      char Topic[32]; 
+      sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "ActTankL");  mqttClient.publish(Topic, 0, true, String(LiterfromDistance(distance)).c_str());
+      sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "MaxTankL");  mqttClient.publish(Topic, 0, true, String(BURNSETT.MAX).c_str());
+      sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "LastSens");  mqttClient.publish(Topic, 0, true, String(distance).c_str());
+    }
 
   PublishHASS2(HASSDistance);
   delay (250); yield();

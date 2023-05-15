@@ -1,4 +1,6 @@
 
+// ulong Timer = millis(); while (millis() < 2000 + Timer ) {ESP.wdtFeed();Yield()} // hier kein delay (async)
+
 // const char origArray[][7][60]= {
 //   // HASS-NODE                                             NAME                   STATE-TOPIC               UNIQUE-ID                 MEAS-Unit      DEV-CLA  STATE-CLASS
 //     {"homeassistant/sensor/oilmeter/color_r/config",      "Color_R",              "oilmeter/sensor/0/R",   "OilMeter_Sensor0_R",      "RGB",         "gas", "measurement"},
