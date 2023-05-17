@@ -56,6 +56,7 @@ bool   LastState = false;             // Letzter Triggerstatus
 ulong Timer2s = millis();          // Strategie für Werte senden (ForcedSend).
 ulong Timer20s = millis();         // Strategie für Werte senden (ForcedSend).
 ulong Timer60s = millis();         // Strategie für Werte senden (ForcedSend).
+ulong TimeChange = 0;              // Wenn die Uhrzeit 00:00 ist, dann muss die aktuelle zeit abgezogen werden - sonst ergeben sich mehr als 24h/Tag.
 bool Force2S = false;              // Triggermerkmal wenn > 2S
 bool Force20S = false;             // Triggermerkmal wenn > 2S
 bool Force60S = false;             // Triggermerkmal wenn > 2S
@@ -172,11 +173,12 @@ void setup(void) {
   Serial.println ("Wifi finished, Init MQTT");
 
   timeClient.begin(); timeClient.forceUpdate() ; delay(100);
-  char Datetime[24]; time_t  epochTime = timeClient.getEpochTime();
+  char Datetime[32]; time_t  epochTime = timeClient.getEpochTime();
   struct tm * ptm; ptm = localtime (&epochTime);
   int monthDay = ptm->tm_mday;
   int currentMonth = ptm->tm_mon+1;
   int currentYear = ptm->tm_year+1900;
+
   sprintf(Datetime,"%d.%d.%d, %s%s\n",monthDay, currentMonth, currentYear, timeClient.getFormattedTime().c_str());
   strlcpy (NTPStart, Datetime , sizeof(NTPStart)); 
 
@@ -257,6 +259,10 @@ void setup(void) {
 		
         if (p -> name() == "INTEG"){SENSSETT.INTEG = p-> value().toInt(); SensUpdated = true;}
         if (p -> name() == "GAIN") {SENSSETT.GAIN  = p-> value().toInt(); SensUpdated = true;}
+        if (p -> name() == "HOHE"){SENSSETT.HOHE = p-> value().toInt(); SensUpdated = true;}
+        if (p -> name() == "ABST") {SENSSETT.ABST  = p-> value().toInt(); SensUpdated = true;}
+        if (p -> name() == "OBEN"){SENSSETT.OBEN = p-> value().toInt(); SensUpdated = true;}
+        if (p -> name() == "UNTEN") {SENSSETT.UNTEN  = p-> value().toInt(); SensUpdated = true;}
         if (p -> name() == "LIGHT"){char BUF[8];     p-> value().toCharArray (BUF, 8);  strlcpy (SENSSETT.LIGHT, BUF,sizeof (BUF)); SensUpdated = true;}
         if (p -> name() == "TYPE") {char BUF[16];    p-> value().toCharArray (BUF, 16); strlcpy (SENSSETT.TYPE , BUF,sizeof (BUF)); SensUpdated = true;}
         if (p -> name() == "TRIGM"){char BUF[8];     p-> value().toCharArray (BUF, 8);  strlcpy (SENSSETT.TRIGM, BUF,sizeof (BUF)); SensUpdated = true;}
@@ -326,6 +332,10 @@ void setup(void) {
     response->println(BURNSETT.ERROR_G);
     response->println(BURNSETT.ERROR_B);
     response->println(USAGE.ActTankL);
+    response->println(SENSSETT.HOHE);
+    response->println(SENSSETT.UNTEN);
+    response->println(SENSSETT.OBEN);
+    response->println(SENSSETT.ABST);
     response->println(NTPStart);
     request->send(response);
   });
@@ -390,11 +400,11 @@ PublishESPStats();
 
 double LiterfromDistance (double Measurement){
   // Testvariablen
-  double Hoehe    =  81;  // cm
-  double LenOben  =  65;  // cm
-  double LenUnten =  44;  // cm
-  double Abstand  =  19;  // cm
-  double LiterGes =  300; // L
+  double Hoehe    =  SENSSETT.HOHE;        // cm
+  double LenOben  =  sqrt(SENSSETT.OBEN);  // cm
+  double LenUnten =  sqrt(SENSSETT.UNTEN); // cm
+  double Abstand  =  SENSSETT.ABST;        // cm
+  double LiterGes =  BURNSETT.MAX;       // L
   char   Liste[256] = "100=100;90=95;80=90;70=80;";
   double HoeheInv   = Abstand + Hoehe -  Measurement;
   double LiterCalc  = (Hoehe * 3.1415 / 12 * ((LenOben*LenOben) + LenOben * LenUnten + (LenUnten * LenUnten))) / 1000;
@@ -662,6 +672,7 @@ bool HandleStates (bool ActState){
         double Verbr = TimeS  * (BURNSETT.L_H / 3600.0) * BURNSETT.COR;                   // Berechnen des Verbrauchs in Liter
         if (CALC == 1 || CALC == 2) {Verbr = BURNSETT.L_H;}                               // Nur wenn es Timer ist, sonst Rücksetzen
         double GenkW = Verbr * BURNSETT.LKW;                                              // Berechnen der generierung in kW
+        TimeChange = TimeS;                                                               // Wenn jetzt 0 Uhr ist diese Zeit abziehen.
 
         events.send(String(USAGE.ActTankL        ,6).c_str(),         "ActTankL"); 
         events.send(String(                 TimeS,2).c_str(),         "LastBurnM"); 
@@ -682,6 +693,7 @@ bool HandleStates (bool ActState){
     // --------------------------------------------------------------------
     if (ActState == false && ActState == LastState){ 
       double TimeS = (double)(millis() - TimerWaitMs) / 1000;     
+      TimeChange = TimeS;                                                               // Wenn jetzt 0 Uhr ist diese Zeit abziehen.
 
       events.send(String(USAGE.ActTankL        ,6).c_str(),         "ActTankL"); 
       events.send(String(TimeS).c_str(),                            "LastWaitM"); 
@@ -694,21 +706,22 @@ bool HandleStates (bool ActState){
     // --------------------------------------------------------------------
     if (ActState != LastState || Force20S){                                                                 
       if (MqttReady == true){
-        mqttClient.publish("oilmeter/LastBurnStat", 0, true, String(ActState).c_str());
-        mqttClient.publish("oilmeter/LastBurnM", 0, true, String(USAGE.LastBurnM,6).c_str());
-        mqttClient.publish("oilmeter/LastWaitM", 0, true, String(USAGE.LastWaitM,6).c_str());
-        mqttClient.publish("oilmeter/LastBurnL", 0, true, String(USAGE.LastBurnL,6).c_str());
-        mqttClient.publish("oilmeter/LastGenkW", 0, true, String(USAGE.LastGenkW,6).c_str());
-        mqttClient.publish("oilmeter/DayBurnM", 0, true, String(USAGE.DayBurnM,6).c_str());
-        mqttClient.publish("oilmeter/DayWaitM", 0, true, String(USAGE.DayWaitM,6).c_str());
-        mqttClient.publish("oilmeter/DayBurnL", 0, true, String(USAGE.DayBurnL,6).c_str());
-        mqttClient.publish("oilmeter/DayGenkW", 0, true, String(USAGE.DayGenkW,6).c_str());
-        mqttClient.publish("oilmeter/GesBurnM", 0, true, String(USAGE.GesBurnM,6).c_str());
-        mqttClient.publish("oilmeter/GesWaitM", 0, true, String(USAGE.GesWaitM,6).c_str());
-        mqttClient.publish("oilmeter/GesBurnL", 0, true, String(USAGE.GesBurnL,6).c_str());
-        mqttClient.publish("oilmeter/GesGenkW", 0, true, String(USAGE.GesGenkW,6).c_str());
-        mqttClient.publish("oilmeter/ActTankL", 0, true, String(USAGE.ActTankL,6).c_str());
-        mqttClient.publish("oilmeter/MaxTankL", 0, true, String(BURNSETT.MAX).c_str());
+        char Topic[32]; 
+        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "LastBurnStat");  mqttClient.publish(Topic, 0, true, String(ActState).c_str());
+        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "LastBurnM");  mqttClient.publish(Topic, 0, true, String(USAGE.LastBurnM).c_str());
+        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "LastWaitM");  mqttClient.publish(Topic, 0, true, String(USAGE.LastWaitM).c_str());
+        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "LastBurnL");  mqttClient.publish(Topic, 0, true, String(USAGE.LastBurnL).c_str());
+        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "LastGenkW");  mqttClient.publish(Topic, 0, true, String(USAGE.LastGenkW).c_str());
+        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "DayBurnM");  mqttClient.publish(Topic, 0, true, String(USAGE.DayBurnM).c_str());
+        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "DayWaitM");  mqttClient.publish(Topic, 0, true, String(USAGE.DayWaitM).c_str());
+        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "DayBurnL");  mqttClient.publish(Topic, 0, true, String(USAGE.DayBurnL).c_str());
+        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "DayGenkW");  mqttClient.publish(Topic, 0, true, String(USAGE.DayGenkW).c_str());
+        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "GesBurnM");  mqttClient.publish(Topic, 0, true, String(USAGE.GesBurnM).c_str());
+        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "GesWaitM");  mqttClient.publish(Topic, 0, true, String(USAGE.GesWaitM).c_str());
+        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "GesBurnL");  mqttClient.publish(Topic, 0, true, String(USAGE.GesBurnL).c_str());
+        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "GesGenkW");  mqttClient.publish(Topic, 0, true, String(USAGE.GesGenkW).c_str());
+        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "ActTankL");  mqttClient.publish(Topic, 0, true, String(USAGE.ActTankL).c_str());
+        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "MaxTankL");  mqttClient.publish(Topic, 0, true, String(BURNSETT.MAX).c_str());
       }
     }
 
@@ -777,10 +790,11 @@ bool HandleOpticalSensors (){
       events.send(RGB.c_str(),        "LastSens");  
       events.send(String(S).c_str(),  "LastBurnStat");
       if (MqttReady == true){   
-        mqttClient.publish("oilmeter/sensor/0/R", 0, true, String(R).c_str());
-        mqttClient.publish("oilmeter/sensor/0/G", 0, true, String(G).c_str());
-        mqttClient.publish("oilmeter/sensor/0/B", 0, true, String(B).c_str());
-        mqttClient.publish("oilmeter/sensor/0/L", 0, true, String(L).c_str());
+        char Topic[32]; 
+        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "sensor/0/R");  mqttClient.publish(Topic, 0, true, String(R).c_str());
+        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "sensor/0/G");  mqttClient.publish(Topic, 0, true, String(G).c_str());
+        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "sensor/0/B");  mqttClient.publish(Topic, 0, true, String(B).c_str());
+        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "sensor/0/L");  mqttClient.publish(Topic, 0, true, String(L).c_str());
       }
     }
 
@@ -794,9 +808,10 @@ bool HandleOpticalSensors (){
   } else {
     if (Force2S){
       // MQTT alles 255 - um in Homeassistant bekannt zu machen dass hier ein Fehler ist
-      mqttClient.publish("oilmeter/sensor/0/R", 0, true, String(128).c_str());
-      mqttClient.publish("oilmeter/sensor/0/G", 0, true, String(128).c_str());
-      mqttClient.publish("oilmeter/sensor/0/B", 0, true, String(128).c_str());
+      char Topic[32]; 
+      sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "sensor/0/R");  mqttClient.publish(Topic, 0, true, String(128).c_str());
+      sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "sensor/0/G");  mqttClient.publish(Topic, 0, true, String(128).c_str());
+      sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "sensor/0/B");  mqttClient.publish(Topic, 0, true, String(128).c_str());
       events.send("Sensor Fehler!", "LastSens");
       Serial.println ("Sensor Fehler!");
     };
@@ -821,19 +836,20 @@ bool HandleDistanceSensors (){
     distance = duration * 0.034 / 2;
   } 
 
-    // ----------------------------------------------------------
-    // spezifischen Status senden
-    // ----------------------------------------------------------
-    events.send(String(LiterfromDistance(distance),6).c_str(), "ActTankL"); 
-    events.send(String(BURNSETT.MAX).c_str(), "MaxTankL"); 
-    events.send(String(distance).c_str(),     "LastSens");  
-    events.send(String("none").c_str(),       "LastBurnStat");
-    if (MqttReady == true){
-      char Topic[32]; 
-      sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "ActTankL");  mqttClient.publish(Topic, 0, true, String(LiterfromDistance(distance)).c_str());
-      sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "MaxTankL");  mqttClient.publish(Topic, 0, true, String(BURNSETT.MAX).c_str());
-      sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "LastSens");  mqttClient.publish(Topic, 0, true, String(distance).c_str());
-    }
+  // ----------------------------------------------------------
+  // spezifischen Status senden
+  // ----------------------------------------------------------
+  events.send(String(LiterfromDistance(distance),6).c_str(), "ActTankL"); 
+  events.send(String(BURNSETT.MAX).c_str(), "MaxTankL"); 
+  events.send(String(distance).c_str(),     "LastSens");  
+  events.send(String("none").c_str(),       "LastBurnStat");
+
+  if (MqttReady == true){
+    char Topic[32]; 
+    sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "ActTankL");  mqttClient.publish(Topic, 0, true, String(LiterfromDistance(distance)).c_str());
+    sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "MaxTankL");  mqttClient.publish(Topic, 0, true, String(BURNSETT.MAX).c_str());
+    sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "LastSens");  mqttClient.publish(Topic, 0, true, String(distance).c_str());
+  }
 
   PublishHASS2(HASSDistance);
   delay (250); yield();
@@ -855,9 +871,9 @@ void ResetDaily(){
   if (monthDay != USAGE.ActDay){
     Serial.println ("Dayly values reset.");
     USAGE.DayBurnL = 0.0;
-    USAGE.DayBurnM = 0.0;
+    USAGE.DayBurnM = TimeChange * -1;
     USAGE.DayGenkW = 0.0;
-    USAGE.DayWaitM = 0.0;
+    USAGE.DayWaitM = TimeChange * -1;
     USAGE.ActDay = monthDay;
     USAGE.Save();
   }

@@ -131,6 +131,7 @@ fetch('Sens.json', {})
 		case "VL53L0X":		HideInitial('Values', true);	HideInitial('BurnStat', true);	HideInitial('LEDOnOff', true);	break;
 		case "SKU237545":	HideInitial('Values', true);	HideInitial('BurnStat', true);	HideInitial('LEDOnOff', true);	break;
 		case "HK1100C":		HideInitial('Values', true);	HideInitial('BurnStat', true);	HideInitial('LEDOnOff', true);	break;
+		case "HX711":		HideInitial('Values', true);	HideInitial('BurnStat', true);	HideInitial('LEDOnOff', true);	break;
 	}
 });
 
@@ -180,6 +181,7 @@ if (!!window.EventSource) {
 		case "VL53L0X"   : setNormal('LastSens',e.data + ' cm');   break;
 		case "SKU237545" : setNormal('LastSens',e.data + ' hPa');  break;
 		case "HK1100C"   : setNormal('LastSens',e.data + ' hPa');  break;
+		case "HX711"     : setNormal('LastSens',e.data + ' hPa');  break;
 		case "TRIGGER"   : setNormal('LastSens',e.data + ' trig'); break;
 	}; 
 	setSignal();

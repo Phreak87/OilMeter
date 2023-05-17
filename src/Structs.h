@@ -228,10 +228,14 @@ struct SENSStruct {
                                      // An = Fixabzug (L/H) bei Consumption wechsel auf true
                                      // Aus = Fixabzug (L/H) bei Consumption wechsel auf false
   int         GAIN     =  4;         // NUR TCS34725, APDS9960
-  int         INTEG    = 50;         // NUR TCS34725, APDS9960
+  int         INTEG    =  50;        // NUR TCS34725, APDS9960
+  int         HOHE     =  140;       // 140 cm ist das gefäss hoch
+  int         ABST     =  16;        // Der Abstand von Sensor bis zum höchsten Punkt ist (cm)
+  int         OBEN     =  3600;      // 60*60 cm = 3600 cm2
+  int         UNTEN    =  2500;      // 50*50 cm = 2500 cm2
 
   bool Load () {
-    DynamicJsonDocument JSON_DOC(128);
+    DynamicJsonDocument JSON_DOC(256);
     bool Loaded = LoadFile ("Sens.json", JSON_DOC);  
     if(Loaded == false){Save();};
     strcpy( TYPE, JSON_DOC["TYPE"]);  
@@ -239,6 +243,10 @@ struct SENSStruct {
     if (JSON_DOC["TRIGM"].isNull()) {strcpy( TRIGM, "An");} else {strcpy( TRIGM, JSON_DOC["TRIGM"]);}; 
     GAIN = JSON_DOC["GAIN"];
     INTEG = JSON_DOC["INTEG"];
+    OBEN = JSON_DOC["OBEN"];
+    UNTEN = JSON_DOC["UNTEN"];
+    ABST = JSON_DOC["ABST"];
+    HOHE = JSON_DOC["HOHE"];
     Serial.println ("File loading success: Sens.json");
     return true;
   }
@@ -247,6 +255,10 @@ struct SENSStruct {
     JSON_DOC["TYPE"]  = TYPE;
     JSON_DOC["GAIN"]  = GAIN;
     JSON_DOC["INTEG"] = INTEG;
+    JSON_DOC["OBEN"]  = OBEN;
+    JSON_DOC["UNTEN"] = UNTEN;
+    JSON_DOC["ABST"]  = ABST;
+    JSON_DOC["HOHE"] = HOHE;
     JSON_DOC["LIGHT"] = LIGHT;
     JSON_DOC["TRIGM"] = TRIGM;
     char json_string[128];

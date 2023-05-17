@@ -28,6 +28,15 @@ const char SensorHTML[] PROGMEM = R"=====(
         </select>
         <p class="break">Type of the color sensing device</p>
     </div>
+    <div class="setting">
+        <p>Änderung bei</p>
+        <select class="console" id="TRIGM">
+            <option>An</option>
+            <option>Aus</option>
+            <option>Zeit</option>
+        </select>
+        <p class="break">Verbrauchsänderung bei Zustand</p>
+    </div>
     <HR/>
 
 	<Div id = "Color">	
@@ -72,11 +81,20 @@ const char SensorHTML[] PROGMEM = R"=====(
 			</select>
 			<p class="break"></p>
 		</div>
-		<div class="setting"><p>Höhe</p>								<input class="console" id="HOHE"></input><p></p></div>
-		<div class="setting"><p>Messabstand</p>							<input class="console" id="ABST"></input><p></p></div>
-		<div class="setting"><p>Werteliste (L, 100%,90%,...,10%)</p>	<input class="console" id="LIST"></input><p></p></div>
-		<div class="setting"><p>Durchmesser oder Länge (cm) oben</p>	<input class="console" id="OBEN"></input><p></p></div>
-		<div class="setting"><p>Durchmesser oder Länge (cm) unten</p>	<input class="console" id="UNTEN"></input><p></p></div>
+		<div class="setting"><p>Höhe</p>								<input class="console" id="HOHE" value="140"></input><p>cm</p></div>
+		<div class="setting"><p>Sensorabstand zum höchsten Punkt</p>	<input class="console" id="ABST" value="14"></input><p>cm</p></div>
+		<div class="setting"><p>Fläche cm2 oben</p>	                    <input class="console" id="OBEN" value="60"></input><p>cm</p></div>
+		<div class="setting"><p>Fläche cm2 unten</p>	                <input class="console" id="UNTEN" value="50"></input><p>cm</p></div>
+        <HR>
+		<div class="setting"><p>Füllstand(%) bei 10% der Höhe</p>       <input class="console" id="LIST10" value="10"></input><p>%</p></div>
+		<div class="setting"><p>Füllstand(%) bei 20% der Höhe</p>       <input class="console" id="LIST20" value="20"></input><p>%</p></div>
+		<div class="setting"><p>Füllstand(%) bei 30% der Höhe</p>       <input class="console" id="LIST30" value="30"></input><p>%</p></div>
+		<div class="setting"><p>Füllstand(%) bei 40% der Höhe</p>       <input class="console" id="LIST40" value="40"></input><p>%</p></div>
+		<div class="setting"><p>Füllstand(%) bei 50% der Höhe</p>       <input class="console" id="LIST50" value="50"></input><p>%</p></div>
+		<div class="setting"><p>Füllstand(%) bei 60% der Höhe</p>       <input class="console" id="LIST60" value="60"></input><p>%</p></div>
+		<div class="setting"><p>Füllstand(%) bei 70% der Höhe</p>       <input class="console" id="LIST70" value="70"></input><p>%</p></div>
+		<div class="setting"><p>Füllstand(%) bei 80% der Höhe</p>       <input class="console" id="LIST80" value="80"></input><p>%</p></div>
+		<div class="setting"><p>Füllstand(%) bei 90% der Höhe</p>       <input class="console" id="LIST90" value="90"></input><p>%</p></div>
 	</Div>
 
 	<Div id = "Pressure">
@@ -84,21 +102,15 @@ const char SensorHTML[] PROGMEM = R"=====(
 		<div class="setting">        <p>Skalierungsfaktor</p>        		<input class="console" id="SCALE"></input><p></p>    </div>
 	</Div>
 
-	<Div id = "Trigger">
-		<div class="setting">
-            <p>Änderung bei</p>
-            <select class="console" id="TRIGM">
-                <option>An</option>
-                <option>Aus</option>
-                <option>Zeit</option>
-            </select>
-            <p class="break">Verbrauchsänderung anhand Faktor</p>
-        </div>
+	<Div id = "Weight">
+		<div class="setting">        <p>Liter pro Kilogramm</p>       	    <input class="console" id="L_KG"></input><p></p>    </div>
 	</Div>
 
+    <HR>
     <div class="setting">        <p></p>        <a class="Btn" href="#" onclick="SaveSettings();">Speichern</a>     <p></p>
     </div>
 </div>
+
 <Script type="text/javascript">
  
     function HideSettings () {
@@ -108,44 +120,50 @@ const char SensorHTML[] PROGMEM = R"=====(
                 document.getElementById('Color').style.display ="";
                 document.getElementById('Distance').style.display ="none";
                 document.getElementById('Pressure').style.display ="none";
-                document.getElementById('Trigger').style.display ="none";
+                document.getElementById('Weight').style.display ="none";
                 break;
             case "APDS9960" :
                 document.getElementById('LIGHT').style.display ="none";
                 document.getElementById('Color').style.display ="";
                 document.getElementById('Distance').style.display ="none";
                 document.getElementById('Pressure').style.display ="none";
-                document.getElementById('Trigger').style.display ="none";
+                document.getElementById('Weight').style.display ="none";
                 break;
             case "SR04_SR04T"  :
 				document.getElementById('Color').style.display ="none";
                 document.getElementById('Distance').style.display ="";
                 document.getElementById('Pressure').style.display ="none";
-                document.getElementById('Trigger').style.display ="none";
+                document.getElementById('Weight').style.display ="none";
                 break;
             case "VL53L0X"  :
 				document.getElementById('Color').style.display ="none";
                 document.getElementById('Distance').style.display ="";
                 document.getElementById('Pressure').style.display ="none";
-                document.getElementById('Trigger').style.display ="none";
+                document.getElementById('Weight').style.display ="none";
                 break;
             case "SKU237545":
 				document.getElementById('Color').style.display ="none";
                 document.getElementById('Distance').style.display ="none";
                 document.getElementById('Pressure').style.display ="";
-                document.getElementById('Trigger').style.display ="none";
+                document.getElementById('Weight').style.display ="none";
 				break;
             case "HK1100C":
 				document.getElementById('Color').style.display ="none";
                 document.getElementById('Distance').style.display ="none";
                 document.getElementById('Pressure').style.display ="";
-                document.getElementById('Trigger').style.display ="none";
+                document.getElementById('Weight').style.display ="none";
+				break;
+            case "HX711":
+				document.getElementById('Color').style.display ="none";
+                document.getElementById('Distance').style.display ="none";
+                document.getElementById('Pressure').style.display ="none";
+                document.getElementById('Weight').style.display ="";
 				break;
             case "TRIGGER":
 				document.getElementById('Color').style.display ="none";
                 document.getElementById('Distance').style.display ="none";
                 document.getElementById('Pressure').style.display ="none";
-                document.getElementById('Trigger').style.display ="";
+                document.getElementById('Weight').style.display ="none";
 				break;
         }
     };
@@ -176,6 +194,7 @@ const char SensorHTML[] PROGMEM = R"=====(
 		.then(function () {HideSettings();})
     };
    
+    HideSettings();
     LoadSettings ("Sens.json");
     
 </Script>
