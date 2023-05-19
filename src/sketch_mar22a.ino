@@ -870,10 +870,11 @@ void ResetDaily(){
 
   if (monthDay != USAGE.ActDay){
     Serial.println ("Dayly values reset.");
+    // Find a way to make this more exact. If the prev. day has count of 2h this will be added to next day ...
     USAGE.DayBurnL = 0.0;
-    USAGE.DayBurnM = TimeChange * -1;
+    USAGE.DayBurnM = 0,0;
     USAGE.DayGenkW = 0.0;
-    USAGE.DayWaitM = TimeChange * -1;
+    USAGE.DayWaitM = 0,0;
     USAGE.ActDay = monthDay;
     USAGE.Save();
   }
