@@ -46,7 +46,7 @@ ulong TimerWaitMs = millis();       // Messung Zeitabstand zwischen Brennvorgän
 // --------------------------------------------------------------------------------------
 // Definitionen für letzte Zustände und Berechnungen
 // --------------------------------------------------------------------------------------
-String LastSensRGB = "255,255,255";   // 255,... ist weiß und Fehler beim Sensor.
+String LastSensRGB = "128,128,128";   // 255,... ist weiß und Fehler beim Sensor.
 int    LastBurnStat  = 0;             // Letzter Brennerstatus
 bool   LastState = false;             // Letzter Triggerstatus
 
@@ -93,15 +93,16 @@ AsyncEventSource events("/events");
 AsyncWebServer server(80);
 
 
-void PublishHASS2 (const char (*Array)[7][32]){
+void PublishHASSTopics (const char (*Array)[7][32], int size){
   if (Force60S      == false){                                                 return;};
   if (LastBurnStat  == 3)    {Serial.println ("No publish while Burning");     return;};
   if (MQTTSETT.HASS == false){Serial.println ("HASS disabled");                return;};
   if (MqttReady     == false){Serial.println ("MQTT not ready");               return;};
 
-      Serial.println ("(re-)publishing HASS-Topics");
-      int size = sizeof (Array) -1; 
+      // int size = sizeof (Array) -1; 
       String URL = "http://" + WiFi.localIP().toString();
+      Serial.println ("(re-)publishing HASS-Topics");
+      Serial.println (size);
 
       for (int i = 0; i < size; i++){
         DynamicJsonDocument HASSETT(512);
@@ -112,22 +113,43 @@ void PublishHASS2 (const char (*Array)[7][32]){
         HASSETT["dev"]["mdl"]    = "ESP8266 + TCS34725/APDS9960";
         HASSETT["dev"]["sw"]     = "V 1.0";
 
-        HASSETT["name"]          = Array[i][1]; // Der ANZEIGE-Name, Beschreibung
+        HASSETT["name"]          = Array[i][1]; // Der ANZEIGE-Name, Beschreibung. Darf keine Leerzeichen enthalten!
         HASSETT["unit_of_meas"]  = Array[i][4]; // Einheit
         HASSETT["exp_aft"]       = 30;          // Wert gültig sekunden
         HASSETT["dev_cla"]       = Array[i][5]; // Geräteklasse (gas weil hass kein öl kann ...)
         HASSETT["stat_cla"]      = Array[i][6]; // Zustand (summierung, aktueller wert)
-        char statt[64]; sprintf(statt,"%s/%s",   MQTTSETT.TOPC, Array[i][2]); HASSETT["stat_t"]  = statt;   // oilmeter/sensor/0/R
-        char unique[64]; sprintf(unique,"%s.%s", MQTTSETT.TOPC, Array[i][3]); HASSETT["uniq_id"] = unique;  // OilMeter_Sensor0_R
+        char statt[64]; sprintf(statt,"%s/%s",   MQTTSETT.TOPC, Array[i][2]); HASSETT["stat_t"]  = statt;   // State-Topic: oilmeter/sensor/0/R
+        // Unique-ID  : OilMeter_Sensor0_R
+        // Darf nicht dem Namen entsprechen!
+        char unique[64]; sprintf(unique,"%s_%s", MQTTSETT.TOPC, Array[i][3]); HASSETT["uniq_id"] = unique;  
 
         char json_string[512];
         serializeJson (HASSETT,json_string);
 
         char topc[64]; sprintf(topc,"%s/%s/%s/config",HassSens, &MQTTSETT.TOPC, &Array[i][1]);  
         mqttClient.publish (topc,0,true, json_string);
-        ESP.wdtFeed(); 
+        ESP.wdtFeed(); delay(10); yield();
       }
       Serial.println ("Finished publishing HASS-Topics");
+}
+void PublishHASSStats  (){
+  if (MqttReady == true){
+    char Topic[32]; 
+    sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "LastBurnM");  mqttClient.publish(Topic, 0, true, String(USAGE.LastBurnM).c_str());
+    sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "LastWaitM");  mqttClient.publish(Topic, 0, true, String(USAGE.LastWaitM).c_str());
+    sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "LastBurnL");  mqttClient.publish(Topic, 0, true, String(USAGE.LastBurnL).c_str());
+    sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "LastGenkW");  mqttClient.publish(Topic, 0, true, String(USAGE.LastGenkW).c_str());
+    sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "DayBurnM");  mqttClient.publish(Topic, 0, true, String(USAGE.DayBurnM).c_str());
+    sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "DayWaitM");  mqttClient.publish(Topic, 0, true, String(USAGE.DayWaitM).c_str());
+    sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "DayBurnL");  mqttClient.publish(Topic, 0, true, String(USAGE.DayBurnL).c_str());
+    sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "DayGenkW");  mqttClient.publish(Topic, 0, true, String(USAGE.DayGenkW).c_str());
+    sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "GesBurnM");  mqttClient.publish(Topic, 0, true, String(USAGE.GesBurnM).c_str());
+    sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "GesWaitM");  mqttClient.publish(Topic, 0, true, String(USAGE.GesWaitM).c_str());
+    sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "GesBurnL");  mqttClient.publish(Topic, 0, true, String(USAGE.GesBurnL).c_str());
+    sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "GesGenkW");  mqttClient.publish(Topic, 0, true, String(USAGE.GesGenkW).c_str());
+    sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "ActTankL");  mqttClient.publish(Topic, 0, true, String(USAGE.ActTankL).c_str());
+    sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "MaxTankL");  mqttClient.publish(Topic, 0, true, String(BURNSETT.MAX).c_str());
+  }
 }
 
 void setup(void) {
@@ -190,26 +212,13 @@ void setup(void) {
 
   InitMQTT();                                                          // MQTT-Initialisieren
 
-  Serial.println (SENSSETT.TYPE);
-  if (strcmp(SENSSETT.TYPE, "TCS34725") == 0) {                        // entweder TCS-Sensor Initialisieren (Standard)
-    InitTCS34725();
-    Force60S = true; PublishHASS2 (HASSColor);
-  }        
-  if (strcmp(SENSSETT.TYPE, "APDS9960") == 0) {                        // oder ... GYP-Sensor Initialisieren
-    InitGYP9960 ();
-    Force60S = true; PublishHASS2 (HASSColor);
-  }    
-  if (strcmp(SENSSETT.TYPE, "TRIGGER") == 0) {                        // oder ... GYP-Sensor Initialisieren
-    SensReady = true; 
-    Force60S = true; PublishHASS2 (HASSColor);
-  }  
-  if (strcmp(SENSSETT.TYPE, "VL53L0X") == 0) {                        // oder ... Laser-Sensor Initialisieren
-    InitVL53L0X ();
-    Force60S = true; PublishHASS2 (HASSDistance);
-  }         
+  Serial.print ("Init Sensor:"); Serial.println (SENSSETT.TYPE);
+  if (strcmp(SENSSETT.TYPE, "VL53L0X") == 0)  {InitVL53L0X ();   Force60S = true; PublishHASSTopics (HASSDistance,3);}  
+  if (strcmp(SENSSETT.TYPE, "TCS34725") == 0) {InitTCS34725();   Force60S = true; PublishHASSTopics (HASSColor,15);}        
+  if (strcmp(SENSSETT.TYPE, "APDS9960") == 0) {InitGYP9960 ();   Force60S = true; PublishHASSTopics (HASSColor,15);}    
+  if (strcmp(SENSSETT.TYPE, "TRIGGER") == 0)  {SensReady = true; Force60S = true; PublishHASSTopics (HASSColor,15);}         
 
    Serial.println ("Sensor finished, Init Webserver");
-
   // HTML-Inhalte (Flash)
   server.on("/",            HTTP_GET,   [](AsyncWebServerRequest *request){ request->send_P(200, "text/html", IndexHTML); });
   server.on("/index.html",  HTTP_GET,   [](AsyncWebServerRequest *request){ request->send_P(200, "text/html", IndexHTML); });
@@ -520,6 +529,7 @@ void InitMQTT(){
   mqttClient.setCredentials(MQTTSETT.USER, MQTTSETT.PASW); // .setClientId(String(ESP.getChipId()).c_str());
   mqttClient.setServer(ADDR, MQTTSETT.PORT); 
   mqttClient.connect();
+  delay (500);yield();          
 }
 void InitLittleFS (){
   if(!LittleFS.begin()){
@@ -704,25 +714,8 @@ bool HandleStates (bool ActState){
     // --------------------------------------------------------------------
     // Erzwungenes Publishing (HASS) oder Statusänderung
     // --------------------------------------------------------------------
-    if (ActState != LastState || Force20S){                                                                 
-      if (MqttReady == true){
-        char Topic[32]; 
-        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "LastBurnStat");  mqttClient.publish(Topic, 0, true, String(ActState).c_str());
-        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "LastBurnM");  mqttClient.publish(Topic, 0, true, String(USAGE.LastBurnM).c_str());
-        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "LastWaitM");  mqttClient.publish(Topic, 0, true, String(USAGE.LastWaitM).c_str());
-        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "LastBurnL");  mqttClient.publish(Topic, 0, true, String(USAGE.LastBurnL).c_str());
-        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "LastGenkW");  mqttClient.publish(Topic, 0, true, String(USAGE.LastGenkW).c_str());
-        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "DayBurnM");  mqttClient.publish(Topic, 0, true, String(USAGE.DayBurnM).c_str());
-        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "DayWaitM");  mqttClient.publish(Topic, 0, true, String(USAGE.DayWaitM).c_str());
-        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "DayBurnL");  mqttClient.publish(Topic, 0, true, String(USAGE.DayBurnL).c_str());
-        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "DayGenkW");  mqttClient.publish(Topic, 0, true, String(USAGE.DayGenkW).c_str());
-        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "GesBurnM");  mqttClient.publish(Topic, 0, true, String(USAGE.GesBurnM).c_str());
-        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "GesWaitM");  mqttClient.publish(Topic, 0, true, String(USAGE.GesWaitM).c_str());
-        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "GesBurnL");  mqttClient.publish(Topic, 0, true, String(USAGE.GesBurnL).c_str());
-        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "GesGenkW");  mqttClient.publish(Topic, 0, true, String(USAGE.GesGenkW).c_str());
-        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "ActTankL");  mqttClient.publish(Topic, 0, true, String(USAGE.ActTankL).c_str());
-        sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "MaxTankL");  mqttClient.publish(Topic, 0, true, String(BURNSETT.MAX).c_str());
-      }
+    if ((ActState != LastState) || (Force20S == true)){                                                                 
+      PublishHASSStats ();
     }
 
     LastState = ActState;       // Set last Status
@@ -739,7 +732,7 @@ bool HandleTriggerSensor (){
   events.send(String(S).c_str(), "LastSens");       // Aktuellen Status publishen
   events.send(String(S).c_str(), "LastBurnStat");   // Aktuellen Status publishen
 
-  PublishHASS2(HASSColor);                          // ziemlich gleich zum ColorSensor
+  PublishHASSTopics(HASSColor, 15);                      // ziemlich gleich zum ColorSensor
   delay (250); yield();                             // Wartezeit bei Triggersensoren
   return true;
 }
@@ -786,7 +779,7 @@ bool HandleOpticalSensors (){
     // ----------------------------------------------------------
     // Bei Farbänderung oder alle 2 spezifischen Status senden
     // ----------------------------------------------------------
-    if (RGB != LastSensRGB || Force2S){
+    if (RGB != LastSensRGB || Force2S == true){
       events.send(RGB.c_str(),        "LastSens");  
       events.send(String(S).c_str(),  "LastBurnStat");
       if (MqttReady == true){   
@@ -801,7 +794,8 @@ bool HandleOpticalSensors (){
     LastSensRGB = RGB;      // Set last Sensor Status
     LastBurnStat = S;       // Set last Status
 
-    PublishHASS2(HASSColor);
+    // Serial.println ("Publish HassColor");
+    PublishHASSTopics(HASSColor,15);
     delay (250); yield();
     return true;
 
@@ -851,7 +845,7 @@ bool HandleDistanceSensors (){
     sprintf(Topic,"%s/%s",MQTTSETT.TOPC, "LastSens");  mqttClient.publish(Topic, 0, true, String(distance).c_str());
   }
 
-  PublishHASS2(HASSDistance);
+  PublishHASSTopics(HASSDistance,3);
   delay (250); yield();
   return true ;
 }
@@ -870,11 +864,12 @@ void ResetDaily(){
 
   if (monthDay != USAGE.ActDay){
     Serial.println ("Dayly values reset.");
-    // Find a way to make this more exact. If the prev. day has count of 2h this will be added to next day ...
+    TimerWaitMs = millis ();    // Find a way to make this more exact.
+    // TimerBurnMs = millis();  // Not reset because then L-Calc will be wrong.
     USAGE.DayBurnL = 0.0;
-    USAGE.DayBurnM = 0,0;
+    USAGE.DayBurnM = 0.0;
     USAGE.DayGenkW = 0.0;
-    USAGE.DayWaitM = 0,0;
+    USAGE.DayWaitM = 0.0;
     USAGE.ActDay = monthDay;
     USAGE.Save();
   }

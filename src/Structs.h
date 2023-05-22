@@ -7,17 +7,17 @@ const char HASSColor[][7][32]= {
     {"color_g/config",      "Color_G",              "sensor/0/G",   "Sensor0_G",      "RGB",         "gas", "measurement"}, 
     {"color_b/config",      "Color_B",              "sensor/0/B",   "Sensor0_B",      "RGB",         "gas", "measurement"}, 
     {"color_l/config",      "Lux",                  "sensor/0/L",   "Sensor0_L",      "RGB",         "gas", "measurement"}, 
-    {"LastBurnM/config",    "Letze Brenndauer",     "LastBurnM",    "LastBurnM",      "Sec",         "gas", "measurement"}, 
-    {"LastWaitM/config",    "Letze Wartedauer",     "LastWaitM",    "LastWaitM",      "Sec",         "gas", "measurement"}, 
-    {"LastBurnL/config",    "Letze Brennmenge",     "LastBurnL",    "LastBurnL",      "L",           "gas", "measurement"}, 
-    {"LastGenkW/config",    "Letze Generierung",    "LastGenkW",    "LastGenkW",      "kWh",         "gas", "measurement"}, 
-    {"GesBurnM/config",     "Gesamte Brenndauer",   "GesBurnM",     "GesBurnM",       "Min",         "gas", "total_increasing"}, 
-    {"GesWaitM/config",     "Gesamte Wartedauer",   "GesWaitM",     "GesWaitM",       "Min",         "gas", "total_increasing"}, 
-    {"GesBurnL/config",     "Gesamte Brennmenge",   "GesBurnL",     "GesBurnL",       "L",           "gas", "total_increasing"}, 
-    {"GesGenkW/config",     "Gesamte Generierung",  "GesGenkW",     "GesGenkW",       "kWh",         "gas", "total_increasing"}, 
+    {"LastBurnM/config",    "Letze_Brenndauer",     "LastBurnM",    "LastBurnM",      "Sec",         "gas", "measurement"}, 
+    {"LastWaitM/config",    "Letze_Wartedauer",     "LastWaitM",    "LastWaitM",      "Sec",         "gas", "measurement"}, 
+    {"LastBurnL/config",    "Letze_Brennmenge",     "LastBurnL",    "LastBurnL",      "L",           "gas", "measurement"}, 
+    {"LastGenkW/config",    "Letze_Generierung",    "LastGenkW",    "LastGenkW",      "kWh",         "gas", "measurement"}, 
+    {"GesBurnM/config",     "Gesamte_Brenndauer",   "GesBurnM",     "GesBurnM",       "Min",         "gas", "total_increasing"}, 
+    {"GesWaitM/config",     "Gesamte_Wartedauer",   "GesWaitM",     "GesWaitM",       "Min",         "gas", "total_increasing"}, 
+    {"GesBurnL/config",     "Gesamte_Brennmenge",   "GesBurnL",     "GesBurnL",       "L",           "gas", "total_increasing"}, 
+    {"GesGenkW/config",     "Gesamte_Generierung",  "GesGenkW",     "GesGenkW",       "kWh",         "gas", "total_increasing"}, 
     {"ActTankL/config",     "Tankinhalt_Aktuell",   "ActTankL",     "ActTankL",       "L",           "gas", "total_increasing"}, 
     {"MaxTankL/config",     "Tankinhalt_Maximal",   "MaxTankL",     "MaxTankL",       "kWh",         "gas", "measurement"},
-    {"LastBurnStat/config", "Letzer Brennerstatus", "LastBurnStat", "LastBurnStat",    "",           "gas", "measurement"} 
+    {"LastBurnStat/config", "Letzer_Brennerstatus", "LastBurnStat", "LastBurnStat",    "",           "gas", "measurement"} 
 };
 const char HASSDistance[][7][32]= {
   // {"homeassistant/sensor/oilmeter/color_r/config",      "Color_R",              "oilmeter/sensor/0/R",   "OilMeter_Sensor0_R",      "RGB",         "gas", "measurement"},
