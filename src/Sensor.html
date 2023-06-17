@@ -37,6 +37,11 @@ const char SensorHTML[] PROGMEM = R"=====(
         </select>
         <p class="break">Verbrauchsänderung bei Zustand</p>
     </div>
+    <div class="setting">
+        <p>Wartezeit (ms)</p>
+        <input class="console" id="WART" value="250"></input>
+        <p>ms</p>
+    </div>
     <HR/>
 
 	<Div id = "Color">	
@@ -77,6 +82,15 @@ const char SensorHTML[] PROGMEM = R"=====(
 			<p>Berechnung:</p>
 			<select class="console" id="CALC">
 			<option>Standard</option>
+			<option>Füllstandsliste_Prozent</option>
+			<option>Füllstandsliste_Liter</option>
+			</select>
+			<p class="break"></p>
+		</div>
+		<div class="setting">
+			<p>Berechnung:</p>
+			<select class="console" id="PRCL">
+			<option>Pro</option>
 			<option>Füllstandsliste</option>
 			</select>
 			<p class="break"></p>
@@ -86,15 +100,15 @@ const char SensorHTML[] PROGMEM = R"=====(
 		<div class="setting"><p>Fläche cm2 oben</p>	                    <input class="console" id="OBEN" value="60"></input><p>cm</p></div>
 		<div class="setting"><p>Fläche cm2 unten</p>	                <input class="console" id="UNTEN" value="50"></input><p>cm</p></div>
         <HR>
-		<div class="setting"><p>Füllstand(%) bei 10% der Höhe</p>       <input class="console" id="LIST10" value="10"></input><p>%</p></div>
-		<div class="setting"><p>Füllstand(%) bei 20% der Höhe</p>       <input class="console" id="LIST20" value="20"></input><p>%</p></div>
-		<div class="setting"><p>Füllstand(%) bei 30% der Höhe</p>       <input class="console" id="LIST30" value="30"></input><p>%</p></div>
-		<div class="setting"><p>Füllstand(%) bei 40% der Höhe</p>       <input class="console" id="LIST40" value="40"></input><p>%</p></div>
-		<div class="setting"><p>Füllstand(%) bei 50% der Höhe</p>       <input class="console" id="LIST50" value="50"></input><p>%</p></div>
-		<div class="setting"><p>Füllstand(%) bei 60% der Höhe</p>       <input class="console" id="LIST60" value="60"></input><p>%</p></div>
-		<div class="setting"><p>Füllstand(%) bei 70% der Höhe</p>       <input class="console" id="LIST70" value="70"></input><p>%</p></div>
-		<div class="setting"><p>Füllstand(%) bei 80% der Höhe</p>       <input class="console" id="LIST80" value="80"></input><p>%</p></div>
-		<div class="setting"><p>Füllstand(%) bei 90% der Höhe</p>       <input class="console" id="LIST90" value="90"></input><p>%</p></div>
+		<div class="setting"><p>Füllstand bei 10% der Höhe</p>       <input class="console" id="LIST10" value="10"></input><p>%</p></div>
+		<div class="setting"><p>Füllstand bei 20% der Höhe</p>       <input class="console" id="LIST20" value="20"></input><p>%</p></div>
+		<div class="setting"><p>Füllstand bei 30% der Höhe</p>       <input class="console" id="LIST30" value="30"></input><p>%</p></div>
+		<div class="setting"><p>Füllstand bei 40% der Höhe</p>       <input class="console" id="LIST40" value="40"></input><p>%</p></div>
+		<div class="setting"><p>Füllstand bei 50% der Höhe</p>       <input class="console" id="LIST50" value="50"></input><p>%</p></div>
+		<div class="setting"><p>Füllstand bei 60% der Höhe</p>       <input class="console" id="LIST60" value="60"></input><p>%</p></div>
+		<div class="setting"><p>Füllstand bei 70% der Höhe</p>       <input class="console" id="LIST70" value="70"></input><p>%</p></div>
+		<div class="setting"><p>Füllstand bei 80% der Höhe</p>       <input class="console" id="LIST80" value="80"></input><p>%</p></div>
+		<div class="setting"><p>Füllstand bei 90% der Höhe</p>       <input class="console" id="LIST90" value="90"></input><p>%</p></div>
 	</Div>
 
 	<Div id = "Pressure">

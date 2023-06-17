@@ -407,28 +407,100 @@ PublishESPStats();
 
 }
 
-double LiterfromDistance (double Measurement){
-  // Testvariablen
+double LiterfromDistance            (double Measurement){
   double Hoehe    =  SENSSETT.HOHE;        // cm
   double LenOben  =  sqrt(SENSSETT.OBEN);  // cm
   double LenUnten =  sqrt(SENSSETT.UNTEN); // cm
   double Abstand  =  SENSSETT.ABST;        // cm
   double LiterGes =  BURNSETT.MAX;       // L
-  char   Liste[256] = "100=100;90=95;80=90;70=80;";
-  double HoeheInv   = Abstand + Hoehe -  Measurement;
+  double HoeheInv   = Abstand + Hoehe - Measurement;
   double LiterCalc  = (Hoehe * 3.1415 / 12 * ((LenOben*LenOben) + LenOben * LenUnten + (LenUnten * LenUnten))) / 1000;
   double FuellBreit = LenUnten + (LenOben - LenUnten) * HoeheInv / Hoehe;
   double LiterAct   = (HoeheInv * 3.1415 / 12 * ((FuellBreit*FuellBreit) + FuellBreit * LenUnten + (LenUnten * LenUnten))) / 1000;
 
-  // Serial.print ("VolCalc:"); Serial.println (LiterCalc);
-  // Serial.print ("VolAct:"); Serial.println (LiterAct);
-  // Serial.print ("FuellBreit:"); Serial.println (FuellBreit);
-  // Serial.print ("Percent:"); Serial.println (LiterAct / LiterCalc);
-  // Serial.print ("Liter:"); Serial.println (LiterGes * LiterAct / LiterCalc);
+  // Serial.print ("VolCalc:");     Serial.println (LiterCalc);
+  // Serial.print ("VolAct:");      Serial.println (LiterAct);
+  // Serial.print ("FuellBreit:");  Serial.println (FuellBreit);
+  // Serial.print ("Percent:");     Serial.println (LiterAct / LiterCalc);
+  // Serial.print ("Liter:");       Serial.println (LiterGes * LiterAct / LiterCalc);
 
   return LiterGes * LiterAct / LiterCalc;
 }
-int BrennerStatus (int &R,int &G,int &B){
+double LiterfromDistanceListPercent (double Measurement){
+  double P00 = 0 ; // Wenn der Boden erreicht ist dann ist auch 0% Voll ...
+  double P10 = 10; // Prozent Tankvolumen bei Prozent Füllstand
+  double P20 = 20; // Prozent Tankvolumen bei Prozent Füllstand
+  double P30 = 30; // Prozent Tankvolumen bei Prozent Füllstand
+  double P40 = 40; // Prozent Tankvolumen bei Prozent Füllstand
+  double P50 = 50; // Prozent Tankvolumen bei Prozent Füllstand
+  double P60 = 60; // Prozent Tankvolumen bei Prozent Füllstand
+  double P70 = 70; // Prozent Tankvolumen bei Prozent Füllstand
+  double P80 = 80; // Prozent Tankvolumen bei Prozent Füllstand
+  double P90 = 90; // Prozent Tankvolumen bei Prozent Füllstand
+  double P100 = 100; // 100 Prozent Höhe = 100% Voll
+
+  double LiterGes = BURNSETT.MAX;                    // L Gesamt
+  double Hoehe    = SENSSETT.HOHE;                   // Gesamthöhe z.B. 200 cm
+  double Abstand  = SENSSETT.ABST;                   // Abstand des Messgeräts zum Max. Messpunkt z.B. 12 cm
+  double HoeheInv = Abstand + Hoehe - Measurement;   // 12 + 200 - 50 (Messabstand) = 162cm 
+  double HoehePrc = HoeheInv / Hoehe;                // (162 / 200) * 100 = 81 Prozent Tankinhalt
+
+  double ValMin = 0;                                 // ValMin ist der unterste Wert der linearen Interpolation
+  double ValMax = 0;                                 // ValMax ist der oberste  Wert der linearen Interpolation
+  if (HoehePrc >= P00 && HoehePrc < P10) {ValMin = P00; ValMax = P10;}
+  if (HoehePrc >= P10 && HoehePrc < P20) {ValMin = P10; ValMax = P20;}
+  if (HoehePrc >= P20 && HoehePrc < P30) {ValMin = P20; ValMax = P30;}
+  if (HoehePrc >= P30 && HoehePrc < P40) {ValMin = P30; ValMax = P40;}
+  if (HoehePrc >= P40 && HoehePrc < P50) {ValMin = P40; ValMax = P50;}
+  if (HoehePrc >= P50 && HoehePrc < P60) {ValMin = P50; ValMax = P60;}
+  if (HoehePrc >= P60 && HoehePrc < P70) {ValMin = P60; ValMax = P70;}
+  if (HoehePrc >= P70 && HoehePrc < P80) {ValMin = P70; ValMax = P80;}
+  if (HoehePrc >= P80 && HoehePrc < P90) {ValMin = P80; ValMax = P90;}
+  if (HoehePrc >= P90 )                  {ValMin = P90; ValMax = P100;}
+
+  double LMin = LiterGes * (ValMin / 100);                      // Bei 3000L = 3000 * 80/100 = 2400
+  double LMax = LiterGes * (ValMax / 100);                      // Bei 3000L = 3000 * 90/100 = 2700
+  double LRes = LMin + (LMax - LMin) *  (Measurement / LMax);   // 2400 + ((2700 - 2400 = 300) * (1-(81 / 90 = 0,9)) = 30) = 2430 L
+
+  return LRes;
+}
+double LiterfromDistanceListLiter   (double Measurement){
+  double P00 = 0 ; // Wenn der Boden erreicht ist dann ist auch 0L Voll ...
+  double P10 = 10; // Prozent Tankvolumen bei Prozent Füllstand
+  double P20 = 20; // Prozent Tankvolumen bei Prozent Füllstand
+  double P30 = 30; // Prozent Tankvolumen bei Prozent Füllstand
+  double P40 = 40; // Prozent Tankvolumen bei Prozent Füllstand
+  double P50 = 50; // Prozent Tankvolumen bei Prozent Füllstand
+  double P60 = 60; // Prozent Tankvolumen bei Prozent Füllstand
+  double P70 = 70; // Prozent Tankvolumen bei Prozent Füllstand
+  double P80 = 80; // Prozent Tankvolumen bei Prozent Füllstand
+  double P90 = 90; // Prozent Tankvolumen bei Prozent Füllstand
+  double P100 = BURNSETT.MAX; // 100 Prozent Höhe = MaxLiter
+
+  double LiterGes = BURNSETT.MAX;                    // L Gesamt
+  double Hoehe    = SENSSETT.HOHE;                   // Gesamthöhe z.B. 200 cm
+  double Abstand  = SENSSETT.ABST;                   // Abstand des Messgeräts zum Max. Messpunkt z.B. 12 cm
+  double HoeheInv = Abstand + Hoehe - Measurement;   // 12 + 200 - 50 (Messabstand) = 162cm 
+  double HoehePrc = HoeheInv / Hoehe;                // (162 / 200) * 100 = 81 Prozent Tankinhalt
+
+  double LMin = 0;                      // Bei 3000L = 3000 * 80/100 = 2400
+  double LMax = 0;                      // Bei 3000L = 3000 * 90/100 = 2700
+  if (HoehePrc >= P00 && HoehePrc < P10) {LMin = P00; LMax = P10;}
+  if (HoehePrc >= P10 && HoehePrc < P20) {LMin = P10; LMax = P20;}
+  if (HoehePrc >= P20 && HoehePrc < P30) {LMin = P20; LMax = P30;}
+  if (HoehePrc >= P30 && HoehePrc < P40) {LMin = P30; LMax = P40;}
+  if (HoehePrc >= P40 && HoehePrc < P50) {LMin = P40; LMax = P50;}
+  if (HoehePrc >= P50 && HoehePrc < P60) {LMin = P50; LMax = P60;}
+  if (HoehePrc >= P60 && HoehePrc < P70) {LMin = P60; LMax = P70;}
+  if (HoehePrc >= P70 && HoehePrc < P80) {LMin = P70; LMax = P80;}
+  if (HoehePrc >= P80 && HoehePrc < P90) {LMin = P80; LMax = P90;}
+  if (HoehePrc >= P90 )                  {LMin = P90; LMax = P100;}
+
+  double LRes = LMin + (LMax - LMin) *  (Measurement / LMax);   // 2400 + ((2700 - 2400 = 300) * (1-(81 / 90 = 0,9)) = 30) = 2430 L
+
+  return LRes;
+}
+int    BrennerStatus                (int &R,int &G,int &B){
   // Aus (0) als undefinierter Zustand (auch zwischen den Bereichen)
   int Status = 0; 
   // Vorheizen

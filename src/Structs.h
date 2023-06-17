@@ -1,6 +1,7 @@
 
 const char* HassSens = "homeassistant/sensor";
 const char HASSColor[][7][32]= {
+  // Namen dürfen keine Leerzeichen enthalten.
   // {"homeassistant/sensor/oilmeter/color_r/config",      "Color_R",              "oilmeter/sensor/0/R",   "OilMeter_Sensor0_R",      "RGB",         "gas", "measurement"},
   // HASS-NODE              NAME                    STATE-TOPIC     UNIQUE-ID         EAS-Unit        DEV-CLA  STATE-CLASS
     {"color_r/config",      "Color_R",              "sensor/0/R",   "Sensor0_R",      "RGB",         "gas", "measurement"},
